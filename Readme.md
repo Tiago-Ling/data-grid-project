@@ -47,6 +47,6 @@ This grid follows a similar structure as AG Grid (although, of course, much simp
 - [ ] Refactor `main.ts` and add proper test data
 - [ ] Move all the different interfaces and types to appropriate places
 - [ ] Better styling and more features for the main demo
-- [ ] Add a variable row heights demo
+- [X] Add a variable row heights demo (loads data from Open Food Facts, adjusts row heights based on ingredients length)
 - [ ] Add a real-time efficient cell data updates demo
 - [ ] Extracting and organising the various default values
