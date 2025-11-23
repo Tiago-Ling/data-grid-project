@@ -35,28 +35,43 @@
 
 .row {
     position: absolute;
-    height: 40px;
-    line-height: 40px;
+    align-items: stretch;
     border-bottom: 1px solid #e0e0e0;
     display: flex;
     background-color: #fff;
     box-sizing: border-box;
 }
 
-.cell, .header-cell {
+.cell {
     border-right: 1px solid #ccc;
-    padding: 0 5px;
+    padding: 5px;
     box-sizing: border-box;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
-    display: inline-block;
+    white-space: normal;
+    word-wrap: break-word;
+    height: 100%;
+    display: flex;
+    align-items: flex-start;
+    line-height: 1.2;
+    min-height: 0;
+    display: block;
 }
 
 .header-cell {
+    border-right: 1px solid #ccc;
+    padding: 5px;
+    box-sizing: border-box;
+    overflow: hidden;
+    text-overflow: ellipsis;
     position: relative;
+    white-space: normal;
+    word-wrap: break-word;
+    line-height: 1.2;
     user-select: none;
     transition: background-color 150ms ease;
+    display: flex;
+    align-items: center;
 }
 
 .header-cell:hover {

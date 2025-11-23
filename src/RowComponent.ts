@@ -33,8 +33,6 @@ export class RowComponent<TRowData extends IRowData> {
 
             eCell.className = 'cell';
             eCell.style.width = `${col.width}px`;
-            eCell.style.position = 'absolute';
-            eCell.style.left = `${leftPos}px`;
 
             this.eGui.appendChild(eCell);
             this.cells!.push({ field: col.field, element: eCell });
