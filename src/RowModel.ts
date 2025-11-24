@@ -1,6 +1,7 @@
-import type { IRowData } from "./Interfaces";
+import type { ColumnDef, GridOptions, IRowData } from "./Interfaces";
 import { EventService } from "./EventService";
 import type { RowRenderData, RowRenderInfo } from "./RowRenderer";
+import { DEF_ROW_HEIGHT } from "./Constants";
 
 export const SortDirection = {
     ASC: 'asc',
@@ -17,8 +18,13 @@ export interface FilterModel<TRowData extends IRowData> {
     filters: Map<keyof TRowData, (row: TRowData) => boolean>;
 }
 
+export interface GroupModel<TRowData extends IRowData> {
+    groupBy: (keyof TRowData)[];
+    expandedGroups: Set<string>;
+}
+
 export interface ModelUpdatedEvent<TRowData extends IRowData> {
-    rowData: TRowData[];
+    rowData: TreeNode<TRowData>[];
     filterModel: FilterModel<TRowData>;
     sortModel: SortModel;
 }
@@ -28,25 +34,52 @@ export type RowHeightCallback<TRowData extends IRowData> = (params: {
     index: number
 }) => number;
 
+export type NodeType = 'group' | 'row';
+
+export interface GroupNode<TRowData extends IRowData> {
+    type: NodeType;
+    key: TRowData[keyof TRowData];
+    field: keyof TRowData;
+    level: number;
+    expanded: boolean;
+    children: TreeNode<TRowData>[];
+    compositeKey: string;
+    count?: number;
+}
+
+export interface RowNode<TRowData extends IRowData> {
+    type: NodeType;
+    data: TRowData;
+    level: number;
+}
+
+export type TreeNode<TRowData extends IRowData> = GroupNode<TRowData> | RowNode<TRowData>;
+
 export class RowModel<TRowData extends IRowData> {
     private readonly rowData: TRowData[] = [];
-    private rowsToDisplay: TRowData[] = [];
+    private rowsToDisplay: TreeNode<TRowData>[] = [];
     private eventService: EventService;
+    private colDefs: Map<keyof TRowData, ColumnDef<TRowData>>;
 
     private filterModel: FilterModel<TRowData>;
     private sortModel: SortModel;
+    private groupModel: GroupModel<TRowData>;
 
     private getRowHeightCallback?: RowHeightCallback<TRowData>;
-    private defaultRowHeight: number;
     private cachedRowPositions: number[] = [];
     private totalHeight: number = 0;
 
-    constructor(rowData: TRowData[], eventService: EventService, rowHeight: number, getRowHeightCallback?: RowHeightCallback<TRowData>) {
+    constructor(gridOptions: GridOptions<TRowData>, eventService: EventService) {
+        const { rowData, columnDefs, getRowHeightCallback } = gridOptions;
         this.rowData = rowData || [];
         this.eventService = eventService;
-        this.defaultRowHeight = rowHeight;
+        this.colDefs = new Map(columnDefs.map(colDef => [colDef.field, colDef] as const));
         this.getRowHeightCallback = getRowHeightCallback;
-        this.rowsToDisplay = [...this.rowData];
+        this.rowsToDisplay = this.rowData.map((value: TRowData) => ({
+            type: 'row',
+            data: value,
+            level: 0
+        }));
 
         this.filterModel = {
             filters: new Map()
@@ -54,10 +87,16 @@ export class RowModel<TRowData extends IRowData> {
         this.sortModel = {
             sorts: []
         };
+        this.groupModel = {
+            groupBy: [],
+            expandedGroups: new Set()
+        };
 
         this.recalculatePositions();
         this.eventService.addEventListener('sortChanged', this.onSortChanged.bind(this));
         this.eventService.addEventListener('filterChanged', this.onFilterChanged.bind(this));
+        this.eventService.addEventListener('groupByToggled', this.onGroupByToggled.bind(this));
+        this.eventService.addEventListener('groupExpanded', this.toggleGroupExpansion.bind(this));
     }
 
     private applyTransformations() {
@@ -80,11 +119,22 @@ export class RowModel<TRowData extends IRowData> {
             });
         }
 
-        // TODO: Apply grouping
+        // Apply grouping
+        let rowNodes:TreeNode<TRowData>[] = [];
+        if (this.groupModel.groupBy.length > 0) {
+            rowNodes = this.buildGroupTree(data, this.groupModel, 0, '');
+            rowNodes = this.flattenTree(rowNodes);
+        } else {
+            rowNodes = data.map((value: TRowData) => ({
+                type: 'row',
+                data: value,
+                level: 0
+            }));
+        }
 
-        this.rowsToDisplay = data;
+        this.rowsToDisplay = rowNodes;
         this.recalculatePositions();
-        const event: ModelUpdatedEvent<TRowData> = { rowData: data, filterModel: this.filterModel, sortModel: this.sortModel };
+        const event: ModelUpdatedEvent<TRowData> = { rowData: this.rowsToDisplay, filterModel: this.filterModel, sortModel: this.sortModel };
         this.eventService.dispatchEvent('modelUpdated', event);
     }
 
@@ -94,12 +144,12 @@ export class RowModel<TRowData extends IRowData> {
 
         const rows = new Map<number, RowRenderInfo<TRowData>>();
         for (let i = startIndex; i <= endIndex; i++) {
-            const rowData = this.getRow(i);
-            if (!rowData) continue;
+            const rowNode = this.getRow(i);
+            if (!rowNode) continue;
 
             rows.set(i, {
                 index: i,
-                data: rowData,
+                node: rowNode,
                 height: this.getRowHeight(i),
                 position: this.getRowPosition(i)
             });
@@ -111,15 +161,15 @@ export class RowModel<TRowData extends IRowData> {
         return this.rowsToDisplay.length;
     }
 
-    public getRow(index: number): TRowData {
+    public getRow(index: number): TreeNode<TRowData> {
         return this.rowsToDisplay[index];
     }
 
-    public getRowData(): TRowData[] {
+    public getRowData(): TreeNode<TRowData>[] {
         return this.rowsToDisplay;
     }
 
-    public onFilterChanged(event: { field: keyof TRowData, searchTerm: string }): void {
+    private onFilterChanged(event: { field: keyof TRowData, searchTerm: string }): void {
         if (!event.searchTerm || event.searchTerm.trim() === '') {
             this.filterModel.filters.delete(event.field);
         } else {
@@ -131,8 +181,105 @@ export class RowModel<TRowData extends IRowData> {
         this.applyTransformations();
     }
 
-    public groupRows(groupModel: any): void {
-        // TODO: Implement "Group By"
+    private onGroupByToggled(field: keyof TRowData): void {
+        let toRemove = false;
+        for (let i = 0; i < this.groupModel.groupBy.length; i++) {
+            toRemove = field === this.groupModel.groupBy[i];
+            if (toRemove) {
+                this.groupModel.groupBy.splice(i, 1);
+                // TODO: clear this
+                // this.groupModel.expandedGroups.delete(field);
+                break;
+            }
+        }
+
+        if (!toRemove) {
+            this.groupModel.groupBy.push(field);
+        }
+        this.applyTransformations();
+    }
+
+    private toggleGroupExpansion(event: { key: string }): void {
+        const isExpanded = this.groupModel.expandedGroups.has(event.key);
+        if (!isExpanded) {
+            this.groupModel.expandedGroups.add(event.key);
+        } else {
+            this.groupModel.expandedGroups.delete(event.key);
+        }
+        this.applyTransformations();
+    }
+
+    private buildGroupTree(rows:TRowData[], groupModel: GroupModel<TRowData>, level: number = 0, parentPath: string = ''): TreeNode<TRowData>[] {
+        // Base case
+        if (level >= groupModel.groupBy.length) {
+            return rows.map(value => ({
+                type: 'row',
+                data: value,
+                level: level
+            }));
+        }
+        const currentField = groupModel.groupBy[level];
+        const defaultExpanded = this.colDefs.get(currentField)?.expanded ?? false;
+
+        // Group rows according to groupBy field and its values
+        const fieldBuckets = new Map<TRowData[keyof TRowData], TRowData[]>();
+        for (const row of rows) {
+            const fieldValue = row[currentField];
+            if (!fieldBuckets.has(fieldValue)) {
+                fieldBuckets.set(fieldValue, []);
+            }
+            fieldBuckets.get(fieldValue)!.push(row);
+        }
+
+        const groups: GroupNode<TRowData>[] = [];
+        fieldBuckets.forEach((values: TRowData[], key:TRowData[keyof TRowData]) => {
+            // Create unique key for the group and verify if it's expanded
+            const groupPath = parentPath
+                ? `${parentPath}/${currentField as string}_${key}`
+                : `${currentField as string}_${key}_${level}`;
+
+            const hasExplicitState = groupModel.expandedGroups.has(groupPath);
+            const isExpanded = hasExplicitState || defaultExpanded;
+
+            // Recurse over children
+            const children = this.buildGroupTree(values, groupModel, level + 1, groupPath);
+            const totalCount = children.reduce((sum, node) => node.type === 'row'
+                ? sum + 1 : sum + ((node as GroupNode<TRowData>).count || 0), 0);
+
+            const groupNode: GroupNode<TRowData> = {
+                type: 'group' as NodeType,
+                key: key,
+                field: currentField,
+                level: level,
+                expanded: isExpanded,
+                children: children,
+                compositeKey: groupPath,
+                count: totalCount // Total descendants
+            };
+            groups.push(groupNode);
+        });
+        return groups;
+    }
+
+    // Recursion would be simpler here, but iterating has slightly better memory usage,
+    // no call stack overhead (although unlikely to happen here) and I get to practice
+    // a different algo as well
+    private flattenTree(nodes: TreeNode<TRowData>[]): TreeNode<TRowData>[] {
+        const res: TreeNode<TRowData>[] = [];
+        // Using stack for depth-first to match existing order
+        const stack:TreeNode<TRowData>[] = [...nodes].reverse();
+        while (stack.length > 0) {
+            const node = stack.pop();
+            if (!node) continue;
+            res.push(node);
+            if (node.type === 'group' && (node as GroupNode<TRowData>).expanded) {
+                const group = node as GroupNode<TRowData>;
+                for (let i = group.children.length - 1; i >= 0; i--) {
+                    stack.push(group.children[i]);
+                }
+            }
+        }
+        return res;
     }
 
     private onSortChanged(event: { field: string, shiftKey: boolean }): void {
@@ -202,10 +349,13 @@ export class RowModel<TRowData extends IRowData> {
 
     public getRowHeight(index: number): number {
         if (this.getRowHeightCallback) {
-            const data = this.rowsToDisplay[index];
-            return this.getRowHeightCallback({ data, index });
+            const node = this.rowsToDisplay[index];
+            if (node.type === 'row') {
+                const data = (node as RowNode<TRowData>).data;
+                return this.getRowHeightCallback({ data, index });
+            }
         }
-        return this.defaultRowHeight;
+        return DEF_ROW_HEIGHT;
     }
 
     public getRowPosition(index: number): number {

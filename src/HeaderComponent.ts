@@ -47,9 +47,17 @@ export class HeaderComponent<TRowData extends IRowData> {
             filterSpan.className = 'filter-indicator';
             filterSpan.innerHTML = filterIconSvg;
 
+            const headerMenuSvg = `<svg width="800px" height="800px" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="#000000" class="bi bi-three-dots-vertical">
+                <path d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+                </svg>`;
+            const headerMenu = document.createElement('span');
+            headerMenu.className = 'header-menu';
+            headerMenu.innerHTML = headerMenuSvg;
+
             cell.appendChild(textSpan);
             cell.appendChild(sortSpan);
             cell.appendChild(filterSpan);
+            cell.appendChild(headerMenu);
 
             fragment.appendChild(cell);
         }
@@ -58,10 +66,10 @@ export class HeaderComponent<TRowData extends IRowData> {
         this.headerElement.appendChild(headerInner);
 
         this.setupScrollbarPadding();
-        this.setupSortHandlers(headerInner);
+        this.setupHandlers(headerInner);
     }
 
-    private setupSortHandlers(headerInner: HTMLElement): void {
+    private setupHandlers(headerInner: HTMLElement): void {
         if (this.onHeaderCellClicked) {
             const prevInner = this.headerElement.querySelector('div');
             if (prevInner) {
@@ -73,6 +81,13 @@ export class HeaderComponent<TRowData extends IRowData> {
             const target = event.target as HTMLElement;
             const headerCell = target.closest('.header-cell') as HTMLElement;
             const field = headerCell?.dataset.field;
+
+            // 3-dot menu (triggering Group By for now, for testing)
+            if (target.classList.contains('header-menu') || target.closest('.header-menu')) {
+                if (field) {
+                    this.handleGroupByClick(field, headerCell);
+                }
+            }
 
             // Filtering
             if (target.classList.contains('filter-indicator') || target.closest('.filter-indicator')) {
@@ -94,9 +109,11 @@ export class HeaderComponent<TRowData extends IRowData> {
         headerInner.addEventListener('click', this.onHeaderCellClicked.bind(this));
     }
 
-    private handleFilterClick(field: string, headerCell: HTMLElement): void {
-        console.log('HandleFilterClick');
+    private handleGroupByClick(field: string, headerCell: HTMLElement): void {
+        this.eventService.dispatchEvent('groupByToggled', field);
+    }
 
+    private handleFilterClick(field: string, headerCell: HTMLElement): void {
         this.hideFilterPopover();
         
         const popover = document.createElement('div');

@@ -17,8 +17,7 @@ export class Grid<TRowData extends IRowData> {
         this.eventService.addEventListener('scrollChanged', this.onScrollChanged.bind(this));
         this.eventService.addEventListener('modelUpdated', this.onModelUpdated.bind(this));
 
-        const rowHeight = gridOptions.rowHeight || 40;
-        this.rowModel = new RowModel<TRowData>(gridOptions.rowData, this.eventService, rowHeight, gridOptions.getRowHeightCallback);
+        this.rowModel = new RowModel<TRowData>(gridOptions, this.eventService);
 
         const eHeader = document.createElement('div');
         eHeader.className = 'grid-header';

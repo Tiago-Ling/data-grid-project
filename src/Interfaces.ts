@@ -4,6 +4,7 @@ export interface ColumnDef<TRowData = any> {
     field: keyof TRowData;
     headerName: string;
     width?: number;
+    expanded?: boolean;
 }
 
 export interface GridOptions<TRowData extends IRowData> {

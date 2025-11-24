@@ -1,5 +1,6 @@
 import { Grid } from "./Grid";
 import type { IRowData, GridOptions } from "./Interfaces";
+import jsonData from "../openfood_page_1_limit_100.json";
 
 interface GridRowData extends IRowData {
     id: number,
@@ -17,12 +18,8 @@ interface GridRowData extends IRowData {
     barcode?: string
 }
 
-async function fetchProducts(page: number, limit: number = 100) {
-    // OpenFoodFacts uses page_size instead of limit, and pages are 1-indexed
-    const response = await fetch(
-        `https://world.openfoodfacts.org/cgi/search.pl?search_terms=*&page=${page}&page_size=${limit}&json=true`
-    );
-    const data = await response.json();
+async function fetchProducts(page: number, limit: number = 100, fetchFunction?: (page: number, limit: number) => Promise<any>) {
+    let data = fetchFunction ? await fetchFunction(page, limit) : jsonData;
     return {
         total: data.count, // Total results available
         page: data.page,
@@ -45,23 +42,29 @@ async function fetchProducts(page: number, limit: number = 100) {
     };
 }
 
-const { total, page, pageSize, rows } = await fetchProducts(1, 100);
+// Grab the data from the web
+const webFetch = (page: number, limit: number) =>
+    fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=*&page=${page}&page_size=${limit}&json=true`).then(response => response.json());
+const { total, page, pageSize, rows } = await fetchProducts(1, 100, webFetch);
+
+// For local testing without abusing Open Food Facts' API
+// const { total, page, pageSize, rows } = await fetchProducts(1, 100);
 
 const gridOptions: GridOptions<GridRowData> = {
     columnDefs: [
-        { field: "id", headerName: "ID", width: 60 },
-        { field: "name", headerName: "Name", width: 180 },
-        { field: "brand", headerName: "Brand", width: 180 },
-        { field: "category", headerName: "Category", width: 180 },
-        { field: "quantity", headerName: "Quantity", width: 100 },
-        { field: "nutritionGrade", headerName: "Nutrition Grade", width: 120 },
-        { field: "ingredients", headerName: "Ingredients", width: 180 },
-        { field: "allergens", headerName: "Allergens", width: 160 },
-        { field: "calories", headerName: "Calories", width: 120 },
-        { field: "fat", headerName: "Fat", width: 80 },
-        { field: "sugar", headerName: "Sugar", width: 80 },
-        { field: "countries", headerName: "Countries", width: 180 },
-        { field: "barcode", headerName: "Barcode", width: 120 },
+        { field: "id", headerName: "ID", width: 60, expanded: false },
+        { field: "name", headerName: "Name", width: 180, expanded: false },
+        { field: "brand", headerName: "Brand", width: 180, expanded: false },
+        { field: "category", headerName: "Category", width: 180, expanded: false },
+        { field: "quantity", headerName: "Quantity", width: 100, expanded: false },
+        { field: "nutritionGrade", headerName: "Nutrition Grade", width: 120, expanded: false },
+        { field: "ingredients", headerName: "Ingredients", width: 180, expanded: false },
+        { field: "allergens", headerName: "Allergens", width: 160, expanded: false },
+        { field: "calories", headerName: "Calories", width: 120, expanded: false },
+        { field: "fat", headerName: "Fat", width: 80, expanded: false },
+        { field: "sugar", headerName: "Sugar", width: 80, expanded: false },
+        { field: "countries", headerName: "Countries", width: 180, expanded: false },
+        { field: "barcode", headerName: "Barcode", width: 120, expanded: false },
     ],
     rowData: rows,
     rowHeight: 40,
@@ -69,19 +72,13 @@ const gridOptions: GridOptions<GridRowData> = {
         const ingredientsLength = data.ingredients?.length || 0;
         const nameLength = data.name?.length || 0;
 
-        // Estimate characters per line for 180px column (~30-35 chars with padding)
+        // Estimated characters per line for 180px column (~30-35 chars with padding)
         const charsPerLine = 35;
-        const lineHeight = 35; // Approximate line height in pixels
-        const padding = 14; // 5px top + 5px bottom
-
-        // Calculate lines needed for ingredients (widest text field)
+        const lineHeight = 35;
+        const padding = 14;
         const ingredientLines = Math.ceil(ingredientsLength / charsPerLine);
         const nameLines = Math.ceil(nameLength / charsPerLine);
-
-        // Use the maximum lines needed
         const maxLines = Math.max(ingredientLines, nameLines, 1);
-
-        // Calculate height with minimum of 40px
         return Math.max(40, (maxLines * lineHeight) + padding);
     }
 };

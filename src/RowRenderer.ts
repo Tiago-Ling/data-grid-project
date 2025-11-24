@@ -1,10 +1,11 @@
 import type { ColumnDef, IRowData } from "./Interfaces";
 import { RowComponent } from "./RowComponent";
 import type { EventService } from "./EventService";
+import type { TreeNode } from "./RowModel";
 
 export interface RowRenderInfo<TRowData extends IRowData> {
     index: number;
-    data: TRowData;
+    node: TreeNode<TRowData>;
     height: number;
     position: number;
 }
@@ -55,7 +56,7 @@ export class RowRenderer<TRowData extends IRowData> {
         // Recycle rows outside of view
         for (const [index, activeRow] of this.activeRows) {
             if (!rows.has(index)) {
-                this.releaseRowComp(activeRow);
+                this.releaseRowComponent(activeRow);
                 this.activeRows.delete(index);
             }
         }
@@ -63,8 +64,11 @@ export class RowRenderer<TRowData extends IRowData> {
         // Add visible rows to the DOM
         const fragment = document.createDocumentFragment();
         for (const [rowIndex, rowInfo] of rows) {
-            const row = this.getRowComp(rowInfo);
-            if (!this.activeRows.has(rowIndex)) {
+            let existingRow = this.activeRows.get(rowIndex);
+            if (existingRow) {
+                existingRow.setData(rowInfo);
+            } else {
+                const row = this.getRowComponent(rowInfo);
                 this.activeRows.set(rowIndex, row);
                 fragment.appendChild(row.getGui());
             }
@@ -81,7 +85,7 @@ export class RowRenderer<TRowData extends IRowData> {
 
     public refreshRows(rowRenderData: RowRenderData<TRowData>): void {
         for (const [index, activeRow] of this.activeRows) {
-            this.releaseRowComp(activeRow);
+            this.releaseRowComponent(activeRow);
             this.activeRows.delete(index);
         }
         this.viewport.scrollTop = 0;
@@ -122,18 +126,18 @@ export class RowRenderer<TRowData extends IRowData> {
         this.eventService.dispatchEvent('scrollChanged', { scrollTop, scrollLeft });
     }
 
-    private getRowComp(rowInfo: RowRenderInfo<TRowData>): RowComponent<TRowData> {
-        let row = this.inactiveRows.pop();
-        if (row) {
+    private getRowComponent(rowInfo: RowRenderInfo<TRowData>): RowComponent<TRowData> {
+        const requiredType = rowInfo.node.type === 'group' ? 'group' : 'row';
+        const compatibleIndex = this.inactiveRows.findIndex(comp => comp.getType() === requiredType);
+        if (compatibleIndex !== -1) {
+            const row = this.inactiveRows.splice(compatibleIndex, 1)[0];
             row.setData(rowInfo);
             return row;
-        } else {
-            row = new RowComponent<TRowData>(rowInfo, this.columnDefs, this.rowWidth);
-            return row;
         }
+        return new RowComponent<TRowData>(rowInfo, this.columnDefs, this.rowWidth, this.eventService);
     }
 
-    private releaseRowComp(rowComp: RowComponent<TRowData>) {
+    private releaseRowComponent(rowComp: RowComponent<TRowData>) {
         const eGui = rowComp.getGui();
         if (eGui && eGui.parentNode) {
             eGui.remove();
