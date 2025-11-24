@@ -1,5 +1,7 @@
 import type { ColumnDef, IRowData } from "./Interfaces";
-import { RowComponent } from "./RowComponent";
+import { type IRowComponent } from "./Components/IRowComponent";
+import { RowComponent } from "./Components/RowComponent";
+import { GroupRowComponent } from "./Components/GroupRowComponent";
 import type { EventService } from "./EventService";
 import type { TreeNode } from "./RowModel";
 
@@ -21,8 +23,8 @@ export class RowRenderer<TRowData extends IRowData> {
     private rowWidth: number;
     private columnDefs: ColumnDef[];
     private eventService: EventService;
-    private activeRows: Map<number, RowComponent<TRowData>>;
-    private inactiveRows: RowComponent<TRowData>[];
+    private activeRows: Map<number, IRowComponent<TRowData>>;
+    private inactiveRows: IRowComponent<TRowData>[];
     private rafPending: number | null = null;
     private scrollTimeout: number | null = null;
 
@@ -126,7 +128,7 @@ export class RowRenderer<TRowData extends IRowData> {
         this.eventService.dispatchEvent('scrollChanged', { scrollTop, scrollLeft });
     }
 
-    private getRowComponent(rowInfo: RowRenderInfo<TRowData>): RowComponent<TRowData> {
+    private getRowComponent(rowInfo: RowRenderInfo<TRowData>): IRowComponent<TRowData> {
         const requiredType = rowInfo.node.type === 'group' ? 'group' : 'row';
         const compatibleIndex = this.inactiveRows.findIndex(comp => comp.getType() === requiredType);
         if (compatibleIndex !== -1) {
@@ -134,10 +136,15 @@ export class RowRenderer<TRowData extends IRowData> {
             row.setData(rowInfo);
             return row;
         }
-        return new RowComponent<TRowData>(rowInfo, this.columnDefs, this.rowWidth, this.eventService);
+
+        if (rowInfo.node.type === 'group') {
+            return new GroupRowComponent<TRowData>(rowInfo, this.columnDefs, this.rowWidth, this.eventService);
+        } else {
+            return new RowComponent<TRowData>(rowInfo, this.columnDefs, this.rowWidth, this.eventService);
+        }
     }
 
-    private releaseRowComponent(rowComp: RowComponent<TRowData>) {
+    private releaseRowComponent(rowComp: IRowComponent<TRowData>) {
         const eGui = rowComp.getGui();
         if (eGui && eGui.parentNode) {
             eGui.remove();

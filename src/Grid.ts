@@ -2,7 +2,7 @@ import type { ColumnDef, GridOptions, IRowData, ScrollChangedEvent } from "./Int
 import { EventService } from "./EventService";
 import { RowModel, type ModelUpdatedEvent } from "./RowModel";
 import { RowRenderer, type RowRenderData } from "./RowRenderer";
-import { HeaderComponent } from "./HeaderComponent";
+import { HeaderComponent } from "./Components/HeaderComponent";
 
 export class Grid<TRowData extends IRowData> {
     private eventService: EventService;
@@ -28,8 +28,8 @@ export class Grid<TRowData extends IRowData> {
         eGridDiv.appendChild(eViewport);
 
         const rowWidth = this.getRowTotalWidth(gridOptions.columnDefs);
-        this.headerController = new HeaderComponent<TRowData>(eHeader, eViewport, this.eventService);
-        this.headerController.init(gridOptions.columnDefs, rowWidth);
+        this.headerController = new HeaderComponent<TRowData>(gridOptions.columnDefs, this.eventService, eViewport, rowWidth);
+        eHeader.appendChild(this.headerController.getGui());
         
         this.rowRenderer = new RowRenderer<TRowData>(
             rowWidth,
@@ -38,7 +38,6 @@ export class Grid<TRowData extends IRowData> {
             eViewport
         );
 
-        // Initial Draw
         const viewportHeight = this.rowRenderer.getViewportHeight();
         const initialRenderData = this.rowModel.calculateRowRenderData(0, viewportHeight);
         this.rowRenderer.drawVirtualRows(initialRenderData);
