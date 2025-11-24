@@ -85,8 +85,10 @@ export class HeaderComponent<TRowData extends IRowData> {
             // 3-dot menu (triggering Group By for now, for testing)
             if (target.classList.contains('header-menu') || target.closest('.header-menu')) {
                 if (field) {
-                    this.handleGroupByClick(field, headerCell);
+                    this.handleGroupByClick(field);
                 }
+                event.stopPropagation();
+                return;
             }
 
             // Filtering
@@ -104,12 +106,14 @@ export class HeaderComponent<TRowData extends IRowData> {
                 if (field) {
                     this.eventService.dispatchEvent('sortChanged', { field, shiftKey: event.shiftKey });
                 }
+                event.stopPropagation();
+                return;
             }
         }
         headerInner.addEventListener('click', this.onHeaderCellClicked.bind(this));
     }
 
-    private handleGroupByClick(field: string, headerCell: HTMLElement): void {
+    private handleGroupByClick(field: string): void {
         this.eventService.dispatchEvent('groupByToggled', field);
     }
 
