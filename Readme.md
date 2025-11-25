@@ -2,6 +2,8 @@
 
 Simple data grid example written in pure Typescript, inspired by the amazing [AG Grid](https://www.ag-grid.com/). The goal of this project is to have fun implementing various features while understanding the internals and challenges of high-performance data grids.
 
+### [Demo](https://Tiago-Ling.github.io/data-grid-project/)
+
 ## Implementation Details
 
 This grid follows a similar structure as AG Grid (although, of course, much simpler):
@@ -25,11 +27,11 @@ This grid follows a similar structure as AG Grid (although, of course, much simp
 - Rows with variable heights (logic is there, but still needs a demo)
 - Column Sorting (single or multiple columns, hold shift when clicking columns for multi-sort)
 - Column Filtering (single or multi-filter)
+- Group rows by column values
 - Very simple custom event service
 
 ### Planned
 
-- [X] Group rows by column values (the classic "Group By")
 - [ ] Custom CellRenderers (w/ selection, editing, etc)
 - [ ] Lazy loading data when scrolling (from server, disk, etc)
 - [ ] Performance improvements and benchmark
@@ -44,7 +46,8 @@ This grid follows a similar structure as AG Grid (although, of course, much simp
 ### Project fixes and adjustments
 
 - [X] Refactor HeaderComponent to extract and organise components (header cell renderer, filter popover, filter & sort buttons)
-- [ ] Refactor `main.ts` and add proper test data <-- In progress
+- [ ] Finish architectural refactor <-- `In progress`
+- [ ] Refactor `main.ts` and add different demos <-- `In progress`
 - [ ] Move all the different interfaces and types to appropriate places
 - [ ] Better styling and more features for the main demo
 - [X] Add a variable row heights to the demo (loads data from Open Food Facts, "guesstimates" row heights based on ingredients length)

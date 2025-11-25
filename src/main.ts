@@ -43,12 +43,12 @@ async function fetchProducts(search: string, page: number, limit: number = 100, 
 }
 
 // Grab the data from the web
-// const webFetch = (search: string, page: number, limit: number) =>
-    // fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${search}&page=${page}&page_size=${limit}&json=true`).then(response => response.json());
-// const { rows } = await fetchProducts("pasta", 1, 100, webFetch);
+const webFetch = (search: string, page: number, limit: number) =>
+    fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${search}&page=${page}&page_size=${limit}&json=true`).then(response => response.json());
+const { rows } = await fetchProducts("pasta", 1, 100, webFetch);
 
 // For local testing without abusing Open Food Facts' API
-const { rows } = await fetchProducts("pasta", 1, 100);
+// const { rows } = await fetchProducts("pasta", 1, 100);
 
 const gridOptions: GridOptions<GridRowData> = {
     columnDefs: [
