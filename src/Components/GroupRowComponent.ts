@@ -3,7 +3,7 @@ import type { IRowData, ColumnDef } from "../Interfaces";
 import type { ICellRenderer } from "../Rendering/CellRenderer";
 import { GroupCellRenderer } from "../Rendering/GroupCellRenderer";
 import type { GroupNode } from "../RowModel";
-import type { RowRenderInfo } from "../RowRenderer";
+import type { RowRenderInfo } from "../Rendering/RowRenderer";
 import type { IRowComponent } from "./IRowComponent";
 
 export class GroupRowComponent<TRowData extends IRowData> implements IRowComponent<TRowData> {
@@ -21,8 +21,8 @@ export class GroupRowComponent<TRowData extends IRowData> implements IRowCompone
         this.renderer = null;
         this.eventService = eventService;
         
-        this.eGui = document.createElement('div');
-        this.eGui.className = 'row';
+        this.eGui = document.createElement("div");
+        this.eGui.className = "row";
 
         this.init();
         this.setData(rowRenderInfo);
@@ -36,13 +36,13 @@ export class GroupRowComponent<TRowData extends IRowData> implements IRowCompone
     }
 
     public getType(): string {
-        return 'group';
+        return "group";
     }
 
     public setData(renderInfo: RowRenderInfo<TRowData>) {
         if (renderInfo === null) return;
-
-        const { index, node, height, position } = renderInfo;
+        this.rowRenderInfo = renderInfo;
+        const { index, node, height, position } = this.rowRenderInfo;
         const groupNode = node as GroupNode<TRowData>;
         const yPos = position ?? (index * height);
 
@@ -70,8 +70,6 @@ export class GroupRowComponent<TRowData extends IRowData> implements IRowCompone
                 }
             });
         }
-
-        this.rowRenderInfo = renderInfo;
     }
 
     public getGui() {

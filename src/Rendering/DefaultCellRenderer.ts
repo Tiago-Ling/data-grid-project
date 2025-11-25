@@ -1,4 +1,4 @@
-import type { EventService } from "../EventService";
+// import type { EventService } from "../EventService";
 import type { ICellRenderer, ICellRendererParams } from "./CellRenderer";
 
 // DefaultCellRenderer implementation
@@ -6,10 +6,9 @@ export class DefaultCellRenderer<TRowData> implements ICellRenderer<TRowData> {
     private eGui!: HTMLElement;
     private params!: ICellRendererParams<TRowData>;
     
-    init(eventService: EventService): void {
-        // this.params = params;
-        this.eGui = document.createElement('div');
-        this.eGui.className = 'cell';
+    init(): void {
+        this.eGui = document.createElement("div");
+        this.eGui.className = "cell";
     }
     
     getGui(): HTMLElement {
@@ -18,12 +17,12 @@ export class DefaultCellRenderer<TRowData> implements ICellRenderer<TRowData> {
     
     refresh(params: ICellRendererParams<TRowData>): boolean {
         this.params = params;
-        this.eGui.style.width = `${params.columnDef.width}px`;
-        this.eGui.textContent = String(params.value ?? '');
+        this.eGui.style.width = `${this.params.columnDef.width}px`;
+        this.eGui.textContent = String(this.params.value ?? "");
         return true;
     }
     
     destroy(): void {
-        
+
     }
 }

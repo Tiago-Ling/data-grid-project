@@ -18,37 +18,37 @@ interface GridRowData extends IRowData {
     barcode?: string
 }
 
-async function fetchProducts(page: number, limit: number = 100, fetchFunction?: (page: number, limit: number) => Promise<any>) {
-    let data = fetchFunction ? await fetchFunction(page, limit) : jsonData;
+async function fetchProducts(search: string, page: number, limit: number = 100, fetchFunction?: (search:string, page: number, limit: number) => Promise<any>) {
+    let data = fetchFunction ? await fetchFunction(search, page, limit) : jsonData;
     return {
         total: data.count, // Total results available
         page: data.page,
         pageSize: data.page_size,
         rows: data.products.map((product: any, index: number) => ({
             id: (page - 1) * limit + index,
-            name: product.product_name || 'Unknown Product',
-            brand: product.brands || 'Unknown Brand',
-            category: product.categories_tags?.[0]?.replace('en:', '') || 'Uncategorized',
-            quantity: product.quantity || 'N/A',
-            nutritionGrade: product.nutrition_grades || 'N/A',
-            ingredients: product.ingredients_text || '',
-            allergens: product.allergens || 'None listed',
+            name: product.product_name || "Unknown Product",
+            brand: product.brands || "Unknown Brand",
+            category: product.categories_tags?.[0]?.replace("en:", "") || "Uncategorized",
+            quantity: product.quantity || "N/A",
+            nutritionGrade: product.nutrition_grades || "N/A",
+            ingredients: product.ingredients_text || "",
+            allergens: product.allergens || "None listed",
             calories: product.nutriments?.energy_100g || 0,
             fat: product.nutriments?.fat_100g || 0,
             sugar: product.nutriments?.sugars_100g || 0,
-            countries: product.countries || 'Unknown',
+            countries: product.countries || "Unknown",
             barcode: product.code
         }))
     };
 }
 
 // Grab the data from the web
-const webFetch = (page: number, limit: number) =>
-    fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=*&page=${page}&page_size=${limit}&json=true`).then(response => response.json());
-const { total, page, pageSize, rows } = await fetchProducts(1, 100, webFetch);
+// const webFetch = (search: string, page: number, limit: number) =>
+    // fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${search}&page=${page}&page_size=${limit}&json=true`).then(response => response.json());
+// const { rows } = await fetchProducts("pasta", 1, 100, webFetch);
 
 // For local testing without abusing Open Food Facts' API
-// const { total, page, pageSize, rows } = await fetchProducts(1, 100);
+const { rows } = await fetchProducts("pasta", 1, 100);
 
 const gridOptions: GridOptions<GridRowData> = {
     columnDefs: [
@@ -84,5 +84,5 @@ const gridOptions: GridOptions<GridRowData> = {
 };
 
 
-const eGridDiv = document.querySelector<HTMLElement>('#grid-container')!;
+const eGridDiv = document.querySelector<HTMLElement>("#grid-container")!;
 new Grid<GridRowData>(eGridDiv, gridOptions);

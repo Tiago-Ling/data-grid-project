@@ -142,6 +142,7 @@
     border-radius: 3px;
 }
 
+.menu-grouping,
 .filter-apply-btn {
     background: #1e90ff;
     color: white;

@@ -1,12 +1,12 @@
 import type { ColumnDef, GridOptions, IRowData } from "./Interfaces";
 import { EventService } from "./EventService";
-import type { RowRenderData, RowRenderInfo } from "./RowRenderer";
+import type { RowRenderData, RowRenderInfo } from "./Rendering/RowRenderer";
 import { DEF_ROW_HEIGHT } from "./Constants";
 
 export const SortDirection = {
-    ASC: 'asc',
-    DESC: 'desc',
-    NONE: 'null'
+    ASC: "asc",
+    DESC: "desc",
+    NONE: "null"
 } as const;
 export type SortDirection = typeof SortDirection[keyof typeof SortDirection];
 
@@ -27,6 +27,7 @@ export interface ModelUpdatedEvent<TRowData extends IRowData> {
     rowData: TreeNode<TRowData>[];
     filterModel: FilterModel<TRowData>;
     sortModel: SortModel;
+    groupModel: GroupModel<TRowData>;
 }
 
 export type RowHeightCallback<TRowData extends IRowData> = (params: {
@@ -34,7 +35,7 @@ export type RowHeightCallback<TRowData extends IRowData> = (params: {
     index: number
 }) => number;
 
-export type NodeType = 'group' | 'row';
+export type NodeType = "group" | "row";
 
 export interface GroupNode<TRowData extends IRowData> {
     type: NodeType;
@@ -76,7 +77,7 @@ export class RowModel<TRowData extends IRowData> {
         this.colDefs = new Map(columnDefs.map(colDef => [colDef.field, colDef] as const));
         this.getRowHeightCallback = getRowHeightCallback;
         this.rowsToDisplay = this.rowData.map((value: TRowData) => ({
-            type: 'row',
+            type: "row",
             data: value,
             level: 0
         }));
@@ -93,10 +94,10 @@ export class RowModel<TRowData extends IRowData> {
         };
 
         this.recalculatePositions();
-        this.eventService.addEventListener('sortChanged', this.onSortChanged.bind(this));
-        this.eventService.addEventListener('filterChanged', this.onFilterChanged.bind(this));
-        this.eventService.addEventListener('groupByToggled', this.onGroupByToggled.bind(this));
-        this.eventService.addEventListener('groupExpanded', this.toggleGroupExpansion.bind(this));
+        this.eventService.addEventListener("sortChanged", this.onSortChanged.bind(this));
+        this.eventService.addEventListener("filterChanged", this.onFilterChanged.bind(this));
+        this.eventService.addEventListener("groupByToggled", this.onGroupByToggled.bind(this));
+        this.eventService.addEventListener("groupExpanded", this.toggleGroupExpansion.bind(this));
     }
 
     private applyTransformations() {
@@ -122,11 +123,11 @@ export class RowModel<TRowData extends IRowData> {
         // Apply grouping
         let rowNodes:TreeNode<TRowData>[] = [];
         if (this.groupModel.groupBy.length > 0) {
-            rowNodes = this.buildGroupTree(data, this.groupModel, 0, '');
+            rowNodes = this.buildGroupTree(data, this.groupModel, 0, "");
             rowNodes = this.flattenTree(rowNodes);
         } else {
             rowNodes = data.map((value: TRowData) => ({
-                type: 'row',
+                type: "row",
                 data: value,
                 level: 0
             }));
@@ -134,8 +135,13 @@ export class RowModel<TRowData extends IRowData> {
 
         this.rowsToDisplay = rowNodes;
         this.recalculatePositions();
-        const event: ModelUpdatedEvent<TRowData> = { rowData: this.rowsToDisplay, filterModel: this.filterModel, sortModel: this.sortModel };
-        this.eventService.dispatchEvent('modelUpdated', event);
+        const event: ModelUpdatedEvent<TRowData> = {
+            rowData: this.rowsToDisplay,
+            filterModel: this.filterModel,
+            sortModel: this.sortModel,
+            groupModel: this.groupModel
+        };
+        this.eventService.dispatchEvent("modelUpdated", event);
     }
 
     public calculateRowRenderData(scrollTop: number, viewportHeight: number): RowRenderData<TRowData> {
@@ -170,7 +176,7 @@ export class RowModel<TRowData extends IRowData> {
     }
 
     private onFilterChanged(event: { field: keyof TRowData, searchTerm: string }): void {
-        if (!event.searchTerm || event.searchTerm.trim() === '') {
+        if (!event.searchTerm || event.searchTerm.trim() === "") {
             this.filterModel.filters.delete(event.field);
         } else {
             this.filterModel.filters.set(event.field, (row) => {
@@ -187,8 +193,6 @@ export class RowModel<TRowData extends IRowData> {
             toRemove = field === this.groupModel.groupBy[i];
             if (toRemove) {
                 this.groupModel.groupBy.splice(i, 1);
-                // TODO: clear this
-                // this.groupModel.expandedGroups.delete(field);
                 break;
             }
         }
@@ -209,11 +213,11 @@ export class RowModel<TRowData extends IRowData> {
         this.applyTransformations();
     }
 
-    private buildGroupTree(rows:TRowData[], groupModel: GroupModel<TRowData>, level: number = 0, parentPath: string = ''): TreeNode<TRowData>[] {
+    private buildGroupTree(rows:TRowData[], groupModel: GroupModel<TRowData>, level: number = 0, parentPath: string = ""): TreeNode<TRowData>[] {
         // Base case
         if (level >= groupModel.groupBy.length) {
             return rows.map(value => ({
-                type: 'row',
+                type: "row",
                 data: value,
                 level: level
             }));
@@ -233,7 +237,7 @@ export class RowModel<TRowData extends IRowData> {
 
         const groups: GroupNode<TRowData>[] = [];
         fieldBuckets.forEach((values: TRowData[], key:TRowData[keyof TRowData]) => {
-            // Create unique key for the group and verify if it's expanded
+            // Create unique key for the group and verify if it"s expanded
             const groupPath = parentPath
                 ? `${parentPath}/${currentField as string}_${key}`
                 : `${currentField as string}_${key}_${level}`;
@@ -243,11 +247,11 @@ export class RowModel<TRowData extends IRowData> {
 
             // Recurse over children
             const children = this.buildGroupTree(values, groupModel, level + 1, groupPath);
-            const totalCount = children.reduce((sum, node) => node.type === 'row'
+            const totalCount = children.reduce((sum, node) => node.type === "row"
                 ? sum + 1 : sum + ((node as GroupNode<TRowData>).count || 0), 0);
 
             const groupNode: GroupNode<TRowData> = {
-                type: 'group' as NodeType,
+                type: "group" as NodeType,
                 key: key,
                 field: currentField,
                 level: level,
@@ -272,7 +276,7 @@ export class RowModel<TRowData extends IRowData> {
             const node = stack.pop();
             if (!node) continue;
             res.push(node);
-            if (node.type === 'group' && (node as GroupNode<TRowData>).expanded) {
+            if (node.type === "group" && (node as GroupNode<TRowData>).expanded) {
                 const group = node as GroupNode<TRowData>;
                 for (let i = group.children.length - 1; i >= 0; i--) {
                     stack.push(group.children[i]);
@@ -320,17 +324,17 @@ export class RowModel<TRowData extends IRowData> {
         if (b == null) return -1;
 
         let result = 0;
-        if (typeof a === 'string' && typeof b === 'string') {
-            result = a.localeCompare(b, undefined, { sensitivity: 'base' });
-        } else if (typeof a === 'number' && typeof b === 'number') {
+        if (typeof a === "string" && typeof b === "string") {
+            result = a.localeCompare(b, undefined, { sensitivity: "base" });
+        } else if (typeof a === "number" && typeof b === "number") {
             result = a - b;
         } else if (a instanceof Date && b instanceof Date) {
             result = a.getTime() - b.getTime();
-        } else if (typeof a === 'boolean' && typeof b === 'boolean') {
+        } else if (typeof a === "boolean" && typeof b === "boolean") {
             result = (a === b) ? 0 : a ? 1 : -1;
         } else {
             // Compare values as strings (fallback)
-            result = String(a).localeCompare(String(b), undefined, { sensitivity: 'base' });
+            result = String(a).localeCompare(String(b), undefined, { sensitivity: "base" });
         }
 
         return direction === SortDirection.DESC ? -result : result;
@@ -350,7 +354,7 @@ export class RowModel<TRowData extends IRowData> {
     public getRowHeight(index: number): number {
         if (this.getRowHeightCallback) {
             const node = this.rowsToDisplay[index];
-            if (node.type === 'row') {
+            if (node.type === "row") {
                 const data = (node as RowNode<TRowData>).data;
                 return this.getRowHeightCallback({ data, index });
             }

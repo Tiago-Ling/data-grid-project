@@ -1,4 +1,4 @@
-import type { RowRenderInfo } from "../RowRenderer";
+import type { RowRenderInfo } from "../Rendering/RowRenderer";
 import type { IRowData } from "../Interfaces";
 
 export interface IRowComponent<TRowData extends IRowData> {

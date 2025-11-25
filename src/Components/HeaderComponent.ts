@@ -24,11 +24,11 @@ export class HeaderComponent<TRowData extends IRowData> {
         this.totalWidth = totalWidth;
         this.headerCells = new Map();
         
-        this.eGui = document.createElement('div');
-        this.eGui.className = 'grid-header';
+        this.eGui = document.createElement("div");
+        this.eGui.className = "grid-header";
         
-        this.headerInner = document.createElement('div');
-        this.headerInner.style.display = 'flex';
+        this.headerInner = document.createElement("div");
+        this.headerInner.style.display = "flex";
         this.eGui.appendChild(this.headerInner);
         
         this.filterPopover = new FilterPopoverComponent(eventService);
@@ -38,13 +38,13 @@ export class HeaderComponent<TRowData extends IRowData> {
         this.setupEventListeners();
         this.setupScrollbarPadding();
         
-        this.eventService.addEventListener('modelUpdated', this.onModelUpdated.bind(this));
+        this.eventService.addEventListener("modelUpdated", this.onModelUpdated.bind(this));
     }
     
     private createHeaderCells(): void {
         for (const colDef of this.columnDefs) {
             const renderer = new HeaderCellRenderer();
-            renderer.init(this.eventService);
+            renderer.init();
             
             renderer.refresh({
                 value: null,
@@ -66,33 +66,32 @@ export class HeaderComponent<TRowData extends IRowData> {
     private setupEventListeners(): void {
         this.onHeaderCellClicked = (event: MouseEvent) => {
             const target = event.target as HTMLElement;
-            const headerCell = target.closest('.header-cell') as HTMLElement;
+            const headerCell = target.closest(".header-cell") as HTMLElement;
             const field = headerCell?.dataset.field;
             
             if (!field) return;
             
-            if (target.classList.contains('header-menu') || target.closest('.header-menu')) {
-                this.eventService.dispatchEvent('groupByToggled', field as keyof TRowData);
+            if (target.classList.contains("header-menu") || target.closest(".header-menu")) {
+                this.eventService.dispatchEvent("groupByToggled", field as keyof TRowData);
                 event.stopPropagation();
                 return;
             }
             
-            if (target.classList.contains('filter-indicator') || target.closest('.filter-indicator')) {
+            if (target.classList.contains("filter-indicator") || target.closest(".filter-indicator")) {
                 this.filterPopover.show(field, headerCell);
                 event.stopPropagation();
                 return;
             }
             
             if (headerCell) {
-                this.eventService.dispatchEvent('sortChanged', { 
+                this.eventService.dispatchEvent("sortChanged", { 
                     field, 
                     shiftKey: event.shiftKey 
                 });
                 event.stopPropagation();
             }
         };
-        
-        this.headerInner.addEventListener('click', this.onHeaderCellClicked);
+        this.headerInner.addEventListener("click", this.onHeaderCellClicked);
     }
 
     private setupScrollbarPadding(): void {
@@ -154,7 +153,7 @@ export class HeaderComponent<TRowData extends IRowData> {
     
     public destroy(): void {
         if (this.onHeaderCellClicked) {
-            this.headerInner.removeEventListener('click', this.onHeaderCellClicked);
+            this.headerInner.removeEventListener("click", this.onHeaderCellClicked);
         }
         
         for (const renderer of this.headerCells.values()) {

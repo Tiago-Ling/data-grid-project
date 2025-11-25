@@ -1,9 +1,9 @@
-import type { ColumnDef, IRowData } from "./Interfaces";
-import { type IRowComponent } from "./Components/IRowComponent";
-import { RowComponent } from "./Components/RowComponent";
-import { GroupRowComponent } from "./Components/GroupRowComponent";
-import type { EventService } from "./EventService";
-import type { TreeNode } from "./RowModel";
+import type { ColumnDef, IRowData } from "../Interfaces";
+import { type IRowComponent } from "../Components/IRowComponent";
+import { RowComponent } from "../Components/RowComponent";
+import { GroupRowComponent } from "../Components/GroupRowComponent";
+import type { EventService } from "../EventService";
+import type { TreeNode } from "../RowModel";
 
 export interface RowRenderInfo<TRowData extends IRowData> {
     index: number;
@@ -43,12 +43,12 @@ export class RowRenderer<TRowData extends IRowData> {
         this.activeRows = new Map();
         this.inactiveRows = [];
         
-        this.container = document.createElement('div');
-        this.container.className = 'grid-center-container';
+        this.container = document.createElement("div");
+        this.container.className = "grid-center-container";
         this.viewport.appendChild(this.container);
 
-        this.viewport.addEventListener('scroll', this.onScroll.bind(this));
-        this.eventService.addEventListener('scrollTopChanged', this.onScrollTopChanged.bind(this));
+        this.viewport.addEventListener("scroll", this.onScroll.bind(this));
+        this.eventService.addEventListener("scrollTopChanged", this.onScrollTopChanged.bind(this));
     }
 
     public drawVirtualRows(renderData: RowRenderData<TRowData>) {
@@ -85,12 +85,16 @@ export class RowRenderer<TRowData extends IRowData> {
         return this.viewport.clientHeight;
     }
 
-    public refreshRows(rowRenderData: RowRenderData<TRowData>): void {
+    public refreshRows(rowRenderData: RowRenderData<TRowData>, resetScroll: boolean = false): void {
         for (const [index, activeRow] of this.activeRows) {
             this.releaseRowComponent(activeRow);
             this.activeRows.delete(index);
         }
-        this.viewport.scrollTop = 0;
+
+        if (resetScroll) {
+            this.viewport.scrollTop = 0;
+        }
+
         if (rowRenderData) {
             this.drawVirtualRows(rowRenderData);
         }
@@ -109,7 +113,7 @@ export class RowRenderer<TRowData extends IRowData> {
     private onScroll() {
         if (this.activeRows.size > 0) {
             for (const row of this.activeRows.values()) {
-                row.getGui().classList.add('grid-row-scrolling');
+                row.getGui().classList.add("grid-row-scrolling");
             }
         }
 
@@ -119,17 +123,17 @@ export class RowRenderer<TRowData extends IRowData> {
 
         this.scrollTimeout = setTimeout(() => {
             for (const row of this.activeRows.values()) {
-                row.getGui().classList.remove('grid-row-scrolling');
+                row.getGui().classList.remove("grid-row-scrolling");
             }
         }, 150);
 
         const scrollTop = this.viewport.scrollTop;
         const scrollLeft = this.viewport.scrollLeft;
-        this.eventService.dispatchEvent('scrollChanged', { scrollTop, scrollLeft });
+        this.eventService.dispatchEvent("scrollChanged", { scrollTop, scrollLeft });
     }
 
     private getRowComponent(rowInfo: RowRenderInfo<TRowData>): IRowComponent<TRowData> {
-        const requiredType = rowInfo.node.type === 'group' ? 'group' : 'row';
+        const requiredType = rowInfo.node.type === "group" ? "group" : "row";
         const compatibleIndex = this.inactiveRows.findIndex(comp => comp.getType() === requiredType);
         if (compatibleIndex !== -1) {
             const row = this.inactiveRows.splice(compatibleIndex, 1)[0];
@@ -137,10 +141,10 @@ export class RowRenderer<TRowData extends IRowData> {
             return row;
         }
 
-        if (rowInfo.node.type === 'group') {
+        if (rowInfo.node.type === "group") {
             return new GroupRowComponent<TRowData>(rowInfo, this.columnDefs, this.rowWidth, this.eventService);
         } else {
-            return new RowComponent<TRowData>(rowInfo, this.columnDefs, this.rowWidth, this.eventService);
+            return new RowComponent<TRowData>(rowInfo, this.columnDefs, this.rowWidth);
         }
     }
 

@@ -12,7 +12,7 @@ export interface ICellRendererParams<TRowData> {
 }
 
 export interface ICellRenderer<TRowData = any> {
-    init(eventService: EventService): void;
+    init(eventService?: EventService): void;
     getGui(): HTMLElement;
     refresh(params: ICellRendererParams<TRowData>): boolean;
     destroy(): void;

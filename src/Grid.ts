@@ -1,35 +1,35 @@
 import type { ColumnDef, GridOptions, IRowData, ScrollChangedEvent } from "./Interfaces";
 import { EventService } from "./EventService";
 import { RowModel, type ModelUpdatedEvent } from "./RowModel";
-import { RowRenderer, type RowRenderData } from "./RowRenderer";
+import { RowRenderer, type RowRenderData } from "./Rendering/RowRenderer";
 import { HeaderComponent } from "./Components/HeaderComponent";
 
 export class Grid<TRowData extends IRowData> {
     private eventService: EventService;
     private rowModel: RowModel<TRowData>;
-    private headerController: HeaderComponent<TRowData>;
+    private header: HeaderComponent<TRowData>;
     private rowRenderer: RowRenderer<TRowData>;
     private scrollTop: number = 0;
     private scrollLeft: number = 0;
 
     constructor(eGridDiv: HTMLElement, gridOptions: GridOptions<TRowData>) {
         this.eventService = new EventService();
-        this.eventService.addEventListener('scrollChanged', this.onScrollChanged.bind(this));
-        this.eventService.addEventListener('modelUpdated', this.onModelUpdated.bind(this));
+        this.eventService.addEventListener("scrollChanged", this.onScrollChanged.bind(this));
+        this.eventService.addEventListener("modelUpdated", this.onModelUpdated.bind(this));
 
         this.rowModel = new RowModel<TRowData>(gridOptions, this.eventService);
 
-        const eHeader = document.createElement('div');
-        eHeader.className = 'grid-header';
+        const eHeader = document.createElement("div");
+        eHeader.className = "grid-header";
         eGridDiv.appendChild(eHeader);
 
-        const eViewport = document.createElement('div');
-        eViewport.className = 'grid-viewport';
+        const eViewport = document.createElement("div");
+        eViewport.className = "grid-viewport";
         eGridDiv.appendChild(eViewport);
 
         const rowWidth = this.getRowTotalWidth(gridOptions.columnDefs);
-        this.headerController = new HeaderComponent<TRowData>(gridOptions.columnDefs, this.eventService, eViewport, rowWidth);
-        eHeader.appendChild(this.headerController.getGui());
+        this.header = new HeaderComponent<TRowData>(gridOptions.columnDefs, this.eventService, eViewport, rowWidth);
+        eHeader.appendChild(this.header.getGui());
         
         this.rowRenderer = new RowRenderer<TRowData>(
             rowWidth,
@@ -42,7 +42,7 @@ export class Grid<TRowData extends IRowData> {
         const initialRenderData = this.rowModel.calculateRowRenderData(0, viewportHeight);
         this.rowRenderer.drawVirtualRows(initialRenderData);
 
-        console.log('Grid initialized');
+        console.log("Grid initialized");
     }
 
     private onScrollChanged(event: ScrollChangedEvent): void {
@@ -53,14 +53,14 @@ export class Grid<TRowData extends IRowData> {
 
         if (event.scrollLeft !== null && this.scrollLeft !== event.scrollLeft) {
             this.scrollLeft = event.scrollLeft;
-            this.headerController.syncScroll(event.scrollLeft);
+            this.header.syncScroll(event.scrollLeft);
         }
     }
 
     private onModelUpdated(event: ModelUpdatedEvent<TRowData>): void {
-        this.headerController.updateSortIndicators(event.sortModel);
+        this.header.updateSortIndicators(event.sortModel);
         this.scrollTop = 0;
-        this.rowRenderer.refreshRows(this.getRowRenderData());
+        this.rowRenderer.refreshRows(this.getRowRenderData(), true);
     }
 
     private getRowRenderData(): RowRenderData<TRowData> {

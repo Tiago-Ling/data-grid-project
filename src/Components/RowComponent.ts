@@ -1,9 +1,8 @@
-import type { EventService } from "../EventService";
 import type { IRowData, ColumnDef } from "../Interfaces";
 import type { ICellRenderer } from "../Rendering/CellRenderer";
 import { DefaultCellRenderer } from "../Rendering/DefaultCellRenderer";
 import type { RowNode } from "../RowModel";
-import type { RowRenderInfo } from "../RowRenderer";
+import type { RowRenderInfo } from "../Rendering/RowRenderer";
 import type { IRowComponent } from "./IRowComponent";
 
 export class RowComponent<TRowData extends IRowData> implements IRowComponent<TRowData> {
@@ -16,17 +15,15 @@ export class RowComponent<TRowData extends IRowData> implements IRowComponent<TR
         element: HTMLElement;
         renderer: ICellRenderer<TRowData>;
     }[];
-    private eventService: EventService;
 
-    constructor(rowRenderInfo: RowRenderInfo<TRowData>, colDefs: ColumnDef<TRowData>[], totalWidth: number, eventService: EventService) {
+    constructor(rowRenderInfo: RowRenderInfo<TRowData>, colDefs: ColumnDef<TRowData>[], totalWidth: number) {
         this.rowRenderInfo = rowRenderInfo;
         this.colDefs = colDefs;
         this.totalWidth = totalWidth;
         this.cells = [];
-        this.eventService = eventService;
         
-        this.eGui = document.createElement('div');
-        this.eGui.className = 'row';
+        this.eGui = document.createElement("div");
+        this.eGui.className = "row";
 
         this.init();
         this.setData(rowRenderInfo);
@@ -38,20 +35,21 @@ export class RowComponent<TRowData extends IRowData> implements IRowComponent<TR
         for (let i = 0; i < len; i++) {
             const col = this.colDefs[i];
             const renderer = new DefaultCellRenderer<TRowData>();
-            renderer.init(this.eventService);
+            renderer.init();
             this.eGui.appendChild(renderer.getGui());
             this.cells.push({ field: col.field, element: renderer.getGui(), renderer: renderer });
         }
     }
 
     public getType(): string {
-        return 'row';
+        return "row";
     }
 
     public setData(renderInfo: RowRenderInfo<TRowData>) {
         if (renderInfo === null) return;
+        this.rowRenderInfo = renderInfo;
 
-        const { index, node, height, position } = renderInfo;
+        const { index, node, height, position } = this.rowRenderInfo;
         const rowNode = node as RowNode<TRowData>;
         const yPos = position ?? (index * height);
 
@@ -71,7 +69,6 @@ export class RowComponent<TRowData extends IRowData> implements IRowComponent<TR
                 eParent: cell.element
             });
         }
-        this.rowRenderInfo = renderInfo;
     }
 
     public getGui() {

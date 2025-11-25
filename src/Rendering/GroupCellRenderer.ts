@@ -9,23 +9,23 @@ export class GroupCellRenderer<TRowData> implements ICellRenderer<TRowData> {
     private btnListener!: () => void;
     
     init(eventService: EventService): void {
-        this.eGui = document.createElement('div');
-        this.eGui.className = 'row-group';
+        this.eGui = document.createElement("div");
+        this.eGui.className = "row-group";
 
-        this.eBtn = document.createElement('button');
-        this.eBtn.className = 'row-group-expand-btn';
+        this.eBtn = document.createElement("button");
+        this.eBtn.className = "row-group-expand-btn";
 
-        this.eTitle = document.createElement('div');
-        this.eTitle.className = 'row-group-title';
+        this.eTitle = document.createElement("div");
+        this.eTitle.className = "row-group-title";
 
         this.eGui.appendChild(this.eBtn);
         this.eGui.appendChild(this.eTitle);
 
         this.btnListener = () => {
             const key = this.params.context.groupNode.compositeKey;
-            eventService.dispatchEvent('groupExpanded', { key: key });
+            eventService.dispatchEvent("groupExpanded", { key: key });
         };
-        this.eBtn.addEventListener('click', this.btnListener.bind(this));
+        this.eBtn.addEventListener("click", this.btnListener.bind(this));
     }
     
     getGui(): HTMLElement {
@@ -35,13 +35,13 @@ export class GroupCellRenderer<TRowData> implements ICellRenderer<TRowData> {
     refresh(params: ICellRendererParams<TRowData>): boolean {
         const { groupNode } = params.context;
         if (groupNode.expanded) {
-            this.eBtn.classList.add('row-group-expand-btn-expanded');
-            this.eBtn.textContent = 'V';
+            this.eBtn.classList.add("row-group-expand-btn-expanded");
+            this.eBtn.textContent = "V";
         } else {
-            this.eBtn?.classList.remove('row-group-expand-btn-expanded');
-            this.eBtn.textContent = '>';
+            this.eBtn?.classList.remove("row-group-expand-btn-expanded");
+            this.eBtn.textContent = ">";
         }
-        const itemsLabel = `${groupNode.count} item${groupNode.count > 1 ? 's' : ''}`;
+        const itemsLabel = `${groupNode.count} item${groupNode.count > 1 ? "s" : ""}`;
         this.eTitle.textContent = `${groupNode.key} - ${itemsLabel}`;
         this.params = params;
         return true;
@@ -49,7 +49,7 @@ export class GroupCellRenderer<TRowData> implements ICellRenderer<TRowData> {
     
     destroy(): void {
         if (this.btnListener !== null) {
-            this.eBtn.removeEventListener('click', this.btnListener);
+            this.eBtn.removeEventListener("click", this.btnListener);
         }
     }
 }
