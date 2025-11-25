@@ -1,6 +1,6 @@
 import { Grid } from "./Grid";
 import type { IRowData, GridOptions } from "./Interfaces";
-import jsonData from "../openfood_page_1_limit_100.json";
+// import jsonData from "../openfood_page_1_limit_100.json";
 
 interface GridRowData extends IRowData {
     id: number,
