@@ -1,5 +1,3 @@
-export type EventServiceListener<TData> = (type: string, data: TData) => void;
-
 export class EventService {
     private listeners: Map<string, Function[]> = new Map<string, Function[]>();
 
