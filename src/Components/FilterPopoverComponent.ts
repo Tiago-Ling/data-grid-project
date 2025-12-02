@@ -1,15 +1,16 @@
-import type { EventService } from "../EventService";
+import { GridContext } from "../GridContext";
+import { ServiceAccess } from "../ServiceAccess";
 
 export class FilterPopoverComponent {
     private eGui: HTMLElement;
     private eInput: HTMLInputElement;
     private eApplyBtn: HTMLButtonElement;
     private eClearBtn: HTMLButtonElement;
-    private eventService: EventService;
+    private context: GridContext;
     private currentField: string | null = null;
-    
-    constructor(eventService: EventService) {
-        this.eventService = eventService;
+
+    constructor(context: GridContext) {
+        this.context = context;
         
         this.eGui = document.createElement("div");
         this.eGui.className = "filter-popover";
@@ -78,17 +79,19 @@ export class FilterPopoverComponent {
     
     private handleApply(): void {
         if (this.currentField) {
-            this.eventService.dispatchEvent("filterChanged", {
+            const eventService = ServiceAccess.getEventService(this.context);
+            eventService.dispatchEvent("filterChanged", {
                 field: this.currentField,
                 searchTerm: this.eInput.value
             });
         }
         this.hide();
     }
-    
+
     private handleClear(): void {
         if (this.currentField) {
-            this.eventService.dispatchEvent("filterChanged", {
+            const eventService = ServiceAccess.getEventService(this.context);
+            eventService.dispatchEvent("filterChanged", {
                 field: this.currentField,
                 searchTerm: ""
             });

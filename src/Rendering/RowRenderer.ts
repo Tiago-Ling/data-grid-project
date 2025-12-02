@@ -2,8 +2,9 @@ import type { ColumnDef, IRowData } from "../Interfaces";
 import { type IRowComponent } from "../Components/IRowComponent";
 import { RowComponent } from "../Components/RowComponent";
 import { GroupRowComponent } from "../Components/GroupRowComponent";
-import type { EventService } from "../EventService";
 import type { TreeNode } from "../RowModel";
+import { GridContext } from "../GridContext";
+import { ServiceAccess } from "../ServiceAccess";
 
 export interface RowRenderInfo<TRowData extends IRowData> {
     index: number;
@@ -22,7 +23,7 @@ export class RowRenderer<TRowData extends IRowData> {
     private container: HTMLElement;
     private rowWidth: number;
     private columnDefs: ColumnDef[];
-    private eventService: EventService;
+    private context: GridContext;
     private activeRows: Map<number, IRowComponent<TRowData>>;
     private inactiveRows: IRowComponent<TRowData>[];
     private rafPending: number | null = null;
@@ -31,24 +32,25 @@ export class RowRenderer<TRowData extends IRowData> {
     constructor(
         rowWidth: number,
         columnDefs: ColumnDef[],
-        eventService: EventService,
+        context: GridContext,
         eViewport: HTMLElement
     ) {
         this.rowWidth = rowWidth;
         this.columnDefs = columnDefs;
 
-        this.eventService = eventService;
+        this.context = context;
         this.viewport = eViewport;
 
         this.activeRows = new Map();
         this.inactiveRows = [];
-        
+
         this.container = document.createElement("div");
         this.container.className = "grid-center-container";
         this.viewport.appendChild(this.container);
 
         this.viewport.addEventListener("scroll", this.onScroll.bind(this));
-        this.eventService.addEventListener("scrollTopChanged", this.onScrollTopChanged.bind(this));
+        const eventService = ServiceAccess.getEventService(this.context);
+        eventService.addEventListener("scrollTopChanged", this.onScrollTopChanged.bind(this));
     }
 
     public drawVirtualRows(renderData: RowRenderData<TRowData>) {
@@ -129,7 +131,8 @@ export class RowRenderer<TRowData extends IRowData> {
 
         const scrollTop = this.viewport.scrollTop;
         const scrollLeft = this.viewport.scrollLeft;
-        this.eventService.dispatchEvent("scrollChanged", { scrollTop, scrollLeft });
+        const eventService = ServiceAccess.getEventService(this.context);
+        eventService.dispatchEvent("scrollChanged", { scrollTop, scrollLeft });
     }
 
     private getRowComponent(rowInfo: RowRenderInfo<TRowData>): IRowComponent<TRowData> {
@@ -142,7 +145,7 @@ export class RowRenderer<TRowData extends IRowData> {
         }
 
         if (rowInfo.node.type === "group") {
-            return new GroupRowComponent<TRowData>(rowInfo, this.columnDefs, this.rowWidth, this.eventService);
+            return new GroupRowComponent<TRowData>(rowInfo, this.columnDefs, this.rowWidth, this.context);
         } else {
             return new RowComponent<TRowData>(rowInfo, this.columnDefs, this.rowWidth);
         }

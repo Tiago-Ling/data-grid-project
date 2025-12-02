@@ -1,15 +1,16 @@
 import type { ColumnDef, IRowData } from "../Interfaces";
-import type { EventService } from "../EventService";
 import type { SortModel } from "../RowModel";
 import type { ICellRenderer } from "../Rendering/CellRenderer";
 import { HeaderCellRenderer } from "../Rendering/HeaderCellRenderer";
 import { FilterPopoverComponent } from "../Components/FilterPopoverComponent";
+import { GridContext } from "../GridContext";
+import { ServiceAccess } from "../ServiceAccess";
 
 export class HeaderComponent<TRowData extends IRowData> {
     private eGui: HTMLElement;
     private headerInner: HTMLElement;
     private columnDefs: ColumnDef<TRowData>[];
-    private eventService: EventService;
+    private context: GridContext;
     private headerCells: Map<string, ICellRenderer<TRowData>>;
     private filterPopover: FilterPopoverComponent;
     private onHeaderCellClicked?: (event: MouseEvent) => void;
@@ -17,28 +18,29 @@ export class HeaderComponent<TRowData extends IRowData> {
     private viewport: HTMLElement;
     private totalWidth: number;
 
-    constructor(columnDefs: ColumnDef<TRowData>[], eventService: EventService, viewport: HTMLElement, totalWidth: number) {
+    constructor(columnDefs: ColumnDef<TRowData>[], context: GridContext, viewport: HTMLElement, totalWidth: number) {
         this.columnDefs = columnDefs;
-        this.eventService = eventService;
+        this.context = context;
         this.viewport = viewport;
         this.totalWidth = totalWidth;
         this.headerCells = new Map();
-        
+
         this.eGui = document.createElement("div");
         this.eGui.className = "grid-header";
-        
+
         this.headerInner = document.createElement("div");
         this.headerInner.style.display = "flex";
         this.eGui.appendChild(this.headerInner);
-        
-        this.filterPopover = new FilterPopoverComponent(eventService);
+
+        this.filterPopover = new FilterPopoverComponent(context);
         document.body.appendChild(this.filterPopover.getGui());
-        
+
         this.createHeaderCells();
         this.setupEventListeners();
         this.setupScrollbarPadding();
-        
-        this.eventService.addEventListener("modelUpdated", this.onModelUpdated.bind(this));
+
+        const eventService = ServiceAccess.getEventService(this.context);
+        eventService.addEventListener("modelUpdated", this.onModelUpdated.bind(this));
     }
     
     private createHeaderCells(): void {
@@ -68,25 +70,27 @@ export class HeaderComponent<TRowData extends IRowData> {
             const target = event.target as HTMLElement;
             const headerCell = target.closest(".header-cell") as HTMLElement;
             const field = headerCell?.dataset.field;
-            
+
             if (!field) return;
-            
+
+            const eventService = ServiceAccess.getEventService(this.context);
+
             if (target.classList.contains("header-menu") || target.closest(".header-menu")) {
-                this.eventService.dispatchEvent("groupByToggled", field as keyof TRowData);
+                eventService.dispatchEvent("groupByToggled", field as keyof TRowData);
                 event.stopPropagation();
                 return;
             }
-            
+
             if (target.classList.contains("filter-indicator") || target.closest(".filter-indicator")) {
                 this.filterPopover.show(field, headerCell);
                 event.stopPropagation();
                 return;
             }
-            
+
             if (headerCell) {
-                this.eventService.dispatchEvent("sortChanged", { 
-                    field, 
-                    shiftKey: event.shiftKey 
+                eventService.dispatchEvent("sortChanged", {
+                    field,
+                    shiftKey: event.shiftKey
                 });
                 event.stopPropagation();
             }

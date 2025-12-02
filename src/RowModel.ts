@@ -1,7 +1,8 @@
 import type { ColumnDef, GridOptions, IRowData } from "./Interfaces";
-import { EventService } from "./EventService";
 import type { RowRenderData, RowRenderInfo } from "./Rendering/RowRenderer";
 import { DEF_ROW_HEIGHT } from "./Constants";
+import { GridContext } from "./GridContext";
+import { ServiceAccess } from "./ServiceAccess";
 
 export const SortDirection = {
     ASC: "asc",
@@ -59,7 +60,7 @@ export type TreeNode<TRowData extends IRowData> = GroupNode<TRowData> | RowNode<
 export class RowModel<TRowData extends IRowData> {
     private readonly rowData: TRowData[] = [];
     private rowsToDisplay: TreeNode<TRowData>[] = [];
-    private eventService: EventService;
+    private context: GridContext;
     private colDefs: Map<keyof TRowData, ColumnDef<TRowData>>;
 
     private filterModel: FilterModel<TRowData>;
@@ -70,10 +71,10 @@ export class RowModel<TRowData extends IRowData> {
     private cachedRowPositions: number[] = [];
     private totalHeight: number = 0;
 
-    constructor(gridOptions: GridOptions<TRowData>, eventService: EventService) {
+    constructor(gridOptions: GridOptions<TRowData>, context: GridContext) {
         const { rowData, columnDefs, getRowHeightCallback } = gridOptions;
         this.rowData = rowData || [];
-        this.eventService = eventService;
+        this.context = context;
         this.colDefs = new Map(columnDefs.map(colDef => [colDef.field, colDef] as const));
         this.getRowHeightCallback = getRowHeightCallback;
         this.rowsToDisplay = this.rowData.map((value: TRowData) => ({
@@ -94,10 +95,11 @@ export class RowModel<TRowData extends IRowData> {
         };
 
         this.recalculatePositions();
-        this.eventService.addEventListener("sortChanged", this.onSortChanged.bind(this));
-        this.eventService.addEventListener("filterChanged", this.onFilterChanged.bind(this));
-        this.eventService.addEventListener("groupByToggled", this.onGroupByToggled.bind(this));
-        this.eventService.addEventListener("groupExpanded", this.toggleGroupExpansion.bind(this));
+        const eventService = ServiceAccess.getEventService(this.context);
+        eventService.addEventListener("sortChanged", this.onSortChanged.bind(this));
+        eventService.addEventListener("filterChanged", this.onFilterChanged.bind(this));
+        eventService.addEventListener("groupByToggled", this.onGroupByToggled.bind(this));
+        eventService.addEventListener("groupExpanded", this.toggleGroupExpansion.bind(this));
     }
 
     private applyTransformations() {
@@ -141,7 +143,8 @@ export class RowModel<TRowData extends IRowData> {
             sortModel: this.sortModel,
             groupModel: this.groupModel
         };
-        this.eventService.dispatchEvent("modelUpdated", event);
+        const eventService = ServiceAccess.getEventService(this.context);
+        eventService.dispatchEvent("modelUpdated", event);
     }
 
     public calculateRowRenderData(scrollTop: number, viewportHeight: number): RowRenderData<TRowData> {

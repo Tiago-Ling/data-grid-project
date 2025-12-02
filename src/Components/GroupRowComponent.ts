@@ -1,10 +1,10 @@
-import type { EventService } from "../EventService";
 import type { IRowData, ColumnDef } from "../Interfaces";
-import type { ICellRenderer } from "../Rendering/CellRenderer";
+import type { ICellRenderer, IGroupCellRendererContext } from "../Rendering/CellRenderer";
 import { GroupCellRenderer } from "../Rendering/GroupCellRenderer";
 import type { GroupNode } from "../RowModel";
 import type { RowRenderInfo } from "../Rendering/RowRenderer";
 import type { IRowComponent } from "./IRowComponent";
+import { GridContext } from "../GridContext";
 
 export class GroupRowComponent<TRowData extends IRowData> implements IRowComponent<TRowData> {
     private rowRenderInfo: RowRenderInfo<TRowData> | null;
@@ -12,15 +12,15 @@ export class GroupRowComponent<TRowData extends IRowData> implements IRowCompone
     private totalWidth: number;
     private eGui: HTMLElement;
     private renderer: ICellRenderer<TRowData> | null;
-    private eventService: EventService;
+    private context: GridContext;
 
-    constructor(rowRenderInfo: RowRenderInfo<TRowData>, colDefs: ColumnDef<TRowData>[], totalWidth: number, eventService: EventService) {
+    constructor(rowRenderInfo: RowRenderInfo<TRowData>, colDefs: ColumnDef<TRowData>[], totalWidth: number, context: GridContext) {
         this.rowRenderInfo = rowRenderInfo;
         this.colDefs = colDefs;
         this.totalWidth = totalWidth;
         this.renderer = null;
-        this.eventService = eventService;
-        
+        this.context = context;
+
         this.eGui = document.createElement("div");
         this.eGui.className = "row";
 
@@ -30,7 +30,7 @@ export class GroupRowComponent<TRowData extends IRowData> implements IRowCompone
 
     private init() {
         const renderer = new GroupCellRenderer<TRowData>();
-        renderer.init(this.eventService);
+        renderer.init(this.context);
         this.eGui.appendChild(renderer.getGui());
         this.renderer = renderer;
     }
@@ -57,6 +57,11 @@ export class GroupRowComponent<TRowData extends IRowData> implements IRowCompone
                 width: this.totalWidth
             };
 
+            const groupContext: IGroupCellRendererContext<TRowData> = {
+                groupNode: groupNode,
+                gridContext: this.context
+            };
+
             this.renderer.refresh({
                 value: groupNode.key,
                 data: null,
@@ -64,10 +69,7 @@ export class GroupRowComponent<TRowData extends IRowData> implements IRowCompone
                 rowIndex: index,
                 columnDef: colDef,
                 eParent: this.eGui,
-                context: {
-                    groupNode: groupNode,
-                    eventService: this.eventService
-                }
+                context: groupContext
             });
         }
     }
