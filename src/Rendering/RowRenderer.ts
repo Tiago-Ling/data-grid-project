@@ -27,7 +27,7 @@ export class RowRenderer<TRowData extends IRowData> {
     private activeRows: Map<number, IRowComponent<TRowData>>;
     private inactiveRows: IRowComponent<TRowData>[];
     private rafPending: number | null = null;
-    private scrollTimeout: NodeJS.Timeout | null = null;
+    private scrollTimeout: ReturnType<typeof setTimeout> | null = null;
     private onScrollBound: () => void;
 
     constructor(
