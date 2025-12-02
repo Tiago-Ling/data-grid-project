@@ -21,7 +21,7 @@ export class OpenFoodDemo extends BaseDemo<GridRowData> {
     }
 
     async getGridOptions(): Promise<GridOptions<GridRowData>> {
-        let rows: GridRowData[];
+        let rows: GridRowData[] = [];
 
         try {
             // Fetch data from Open Food Facts API
@@ -35,10 +35,7 @@ export class OpenFoodDemo extends BaseDemo<GridRowData> {
             rows = result.rows;
             console.log('Loaded data from Open Food Facts API');
         } catch (error) {
-            console.warn('Online API failed, falling back to mock data:', error);
-            // Fallback to mock data if API fails
-            const result = await fetchProducts("taco", 1, 100);
-            rows = result.rows;
+            console.error('Online API failed, falling back to mock data:', error);
         }
 
         return {

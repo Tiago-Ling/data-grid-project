@@ -1,7 +1,5 @@
-import jsonData from "./openfood_page_1_limit_100.json";
-
-export async function fetchProducts(search: string, page: number, limit: number = 100, fetchFunction?: (search:string, page: number, limit: number) => Promise<any>) {
-    let data = fetchFunction ? await fetchFunction(search, page, limit) : jsonData;
+export async function fetchProducts(search: string, page: number, limit: number = 100, fetchFunction: (search:string, page: number, limit: number) => Promise<any>) {
+    let data = await fetchFunction(search, page, limit);
     return {
         total: data.count, // Total results available
         page: data.page,
