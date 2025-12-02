@@ -46,13 +46,13 @@ This grid follows a similar structure as AG Grid (although, of course, much simp
 ### Known Issues and Fixes
 
 - [X] Refactor HeaderComponent to extract and organise components (header cell renderer, filter popover, filter & sort buttons)
-- [ ] Finish architectural refactor <-- `In progress`
-- [ ] Refactor `main.ts` and add different demos <-- `In progress`
-- [ ] Scrolling has glitches when grouping is enabled (scrolling to the top when it shouldn´t)
-- [ ] Three-dot button has no visual indication when grouping is on (refactor regression)
+- [X] Finish architectural refactor <-- `Done for now (realized this will likely never truly end)`
+- [X] Refactor `main.ts` and add different demos
+- [X] Scrolling has glitches when grouping is enabled (scrolling to the top when it shouldn´t)
+- [X] Three-dot button has no visual indication when grouping is on (refactor regression)
 - [ ] Filter popover is not storing search term (refactor regression)
-- [ ] Move all the different interfaces and types to appropriate places
-- [ ] Better styling and more features for the main demo
+- [ ] Move all the different interfaces and types to appropriate places <-- `In progress`
+- [ ] Better styling and more features for the main demo <-- `In progress`
 - [X] Add a variable row heights to the demo (loads data from Open Food Facts, "guesstimates" row heights based on ingredients length)
 - [ ] Add a real-time efficient cell data updates demo
-- [ ] Extracting and organising the various default values
+- [ ] Extracting and organising the various default values <-- `In progress`

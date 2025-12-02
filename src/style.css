@@ -1,12 +1,202 @@
+/* Font Faces */
+@font-face {
+    font-family: 'UbuntuSans';
+    src: url('../fonts/UbuntuSansNerdFontPropo-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'UbuntuSans';
+    src: url('../fonts/UbuntuSansNerdFontPropo-Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'JetBrainsMono';
+    src: url('../fonts/JetBrainsMonoNerdFontPropo-Thin.ttf') format('truetype');
+    font-weight: 100;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'JetBrainsMono';
+    src: url('../fonts/JetBrainsMonoNerdFontPropo-Medium.ttf') format('truetype');
+    font-weight: 500;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'JetBrainsMono';
+    src: url('../fonts/JetBrainsMonoNerdFontPropo-Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Overpass Mono';
+    src: url('../fonts/OverpassMNerdFontMono-Bold.otf') format('opentype');
+    font-weight: 900;
+    font-style: normal;
+}
+
+#main-container {
+    display: flex;
+    flex-direction: row;
+    padding: 0.6em;
+}
+
+.page-title {
+    text-align: center;
+    font-family: 'Overpass Mono', sans-serif;
+    font-weight: 900;
+    border-bottom: solid #444 1px;
+}
+
+/* Demo Toolbar Styles */
+.demo-bar-container {
+    display: flex;
+    flex-direction: column;
+    padding-left: .6em;
+    padding-right: .6em;
+    background: #f5f5f5;
+    border-radius: 6px;
+    border-bottom: 1px solid #ddd;
+    width: 15%;
+    height: auto;
+}
+
+#demo-toolbar {
+    margin-top: 1.6em;
+    padding: 1.2em;
+    background: #d3d3d3;
+    border-radius: 6px;
+}
+
+.demo-selector-group {
+    margin-bottom: 12px;
+}
+
+.demo-selector-group label {
+    font-weight: bold;
+    color: #333;
+    font-family: 'JetBrainsMono', monospace;
+    font-size: small;
+}
+
+#demo-selector {
+    padding: 4px 8px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    min-width: 80px;
+    font-family: 'JetBrainsMono', monospace;
+    font-size: small;
+}
+
+#demo-selector:hover {
+    border-color: #999;
+}
+
+#demo-selector:focus {
+    outline: none;
+    border-color: #1e90ff;
+    box-shadow: 0 0 0 2px rgba(30, 144, 255, 0.1);
+}
+
+.demo-info {
+    margin-top: 8px;
+    font-family: 'JetBrainsMono', monospace;
+    font-size:x-small;
+}
+
+#demo-title {
+    margin: 0 0 5px 0;
+    font-size: 13px;
+    color: #333;
+    font-weight: 600;
+}
+
+#demo-description {
+    margin: 0;
+    color: #666;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.demo-credits {
+    margin-top: 8px;
+    font-size: 0.9em;
+    color: #666;
+}
+
+.demo-credits a {
+    color: #0066cc;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.demo-credits a:hover {
+    text-decoration: underline;
+}
+
+/* Mode Toggle Styles */
+.mode-toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-top: 8px;
+    padding: 6px 12px;
+    background: #f0f0f0;
+    border-radius: 6px;
+    font-family: 'JetBrainsMono', monospace;
+    font-size: small;
+}
+
+.mode-toggle-label {
+    font-weight: 500;
+    color: #333;
+}
+
+.mode-toggle-container input[type="radio"] {
+    margin: 0 5px 0 15px;
+    cursor: pointer;
+}
+
+.mode-toggle-container input[type="radio"]:first-of-type {
+    margin-left: 0;
+}
+
+.mode-toggle-container label {
+    cursor: pointer;
+    color: #555;
+}
+
+.mode-toggle-container input[type="radio"]:disabled + label {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.mode-toggle-container input[type="radio"]:checked + label {
+    font-weight: 600;
+    color: #1e90ff;
+}
+
+/* Grid Container Styles */
 #grid-container {
     display: flex;
     flex-direction: column;
     width: 80%;
+    margin-left: 1.2em;
+    margin-top: 2.5em;
     border: 2px solid #333;
 }
 
 .grid-header {
-    height: 40px;
+    height: 60px;
     line-height: 40px;
     overflow: hidden;
     background: #f8f8f8;
@@ -56,11 +246,12 @@
     line-height: 1.2;
     min-height: 0;
     display: block;
+    font-family: 'UbuntuSans', sans-serif;
 }
 
 .header-cell {
     border-right: 1px solid #ccc;
-    padding: 5px;
+    padding: 10px;
     box-sizing: border-box;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -72,6 +263,7 @@
     transition: background-color 150ms ease;
     display: flex;
     align-items: center;
+    font-family: 'JetBrainsMono', monospace;
 }
 
 .header-cell:hover {
@@ -115,7 +307,7 @@
     position: fixed;
     background: white;
     border: 1px solid #ddd;
-    border-radius: 4px;
+    border-radius: 6px;
     padding: 8px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     z-index: 1000;
