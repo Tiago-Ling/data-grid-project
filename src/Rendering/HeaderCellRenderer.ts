@@ -1,4 +1,5 @@
-// import type { EventService } from "../EventService";
+import { FilterIcon } from "../Icons/Filter";
+import { HeaderMenuIcon } from "../Icons/HeaderMenu";
 import type { ICellRenderer, ICellRendererParams } from "./CellRenderer";
 
 export class HeaderCellRenderer implements ICellRenderer<any> {
@@ -7,11 +8,8 @@ export class HeaderCellRenderer implements ICellRenderer<any> {
     private eSortIndicator!: HTMLElement;
     private eFilterIndicator!: HTMLElement;
     private eMenu!: HTMLElement;
-    // private eventService!: EventService;
     
     init(): void {
-        // this.eventService = eventService;
-
         this.eGui = document.createElement("div");
         this.eGui.className = "header-cell";
         this.eGui.style.cursor = "pointer";
@@ -26,22 +24,12 @@ export class HeaderCellRenderer implements ICellRenderer<any> {
 
         this.eFilterIndicator = document.createElement("span");
         this.eFilterIndicator.className = "filter-indicator";
-        this.eFilterIndicator.innerHTML = `
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-            </svg>
-        `;
+        this.eFilterIndicator.innerHTML = FilterIcon;
         this.eGui.appendChild(this.eFilterIndicator);
 
         this.eMenu = document.createElement("span");
         this.eMenu.className = "header-menu";
-        this.eMenu.innerHTML = `
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <circle cx="12" cy="5" r="2"></circle>
-                <circle cx="12" cy="12" r="2"></circle>
-                <circle cx="12" cy="19" r="2"></circle>
-            </svg>
-        `;
+        this.eMenu.innerHTML = HeaderMenuIcon;
         this.eGui.appendChild(this.eMenu);
     }
     
@@ -80,7 +68,7 @@ export class HeaderCellRenderer implements ICellRenderer<any> {
 
         if (context?.groupModel) {
             // TODO: RowModel needs to send the column field here
-            const hasGrouping = context.groupModel.groupBy[columnDef.field];
+            const hasGrouping = context.groupModel.groupBy.includes(columnDef.field);
             if (hasGrouping) {
                 this.eMenu.classList.add("menu-grouping");
             } else {

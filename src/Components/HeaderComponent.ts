@@ -1,5 +1,5 @@
 import type { ColumnDef, IRowData } from "../Interfaces";
-import type { SortModel } from "../RowModel";
+import type { ModelUpdatedData } from "../RowModel";
 import type { ICellRenderer } from "../Rendering/CellRenderer";
 import { HeaderCellRenderer } from "../Rendering/HeaderCellRenderer";
 import { FilterPopoverComponent } from "../Components/FilterPopoverComponent";
@@ -14,6 +14,7 @@ export class HeaderComponent<TRowData extends IRowData> {
     private headerCells: Map<string, ICellRenderer<TRowData>>;
     private filterPopover: FilterPopoverComponent;
     private onHeaderCellClicked?: (event: MouseEvent) => void;
+    private onModelUpdatedBound: (event: ModelUpdatedData<TRowData>) => void;
     private resizeObserver: ResizeObserver | null = null;
     private viewport: HTMLElement;
     private totalWidth: number;
@@ -35,12 +36,14 @@ export class HeaderComponent<TRowData extends IRowData> {
         this.filterPopover = new FilterPopoverComponent(context);
         document.body.appendChild(this.filterPopover.getGui());
 
+        this.onModelUpdatedBound = this.onModelUpdated.bind(this);
+
         this.createHeaderCells();
         this.setupEventListeners();
         this.setupScrollbarPadding();
 
         const eventService = ServiceAccess.getEventService(this.context);
-        eventService.addEventListener("modelUpdated", this.onModelUpdated.bind(this));
+        eventService.addEventListener("modelUpdated", this.onModelUpdatedBound);
     }
     
     private createHeaderCells(): void {
@@ -56,7 +59,8 @@ export class HeaderComponent<TRowData extends IRowData> {
                 columnDef: colDef,
                 eParent: this.headerInner,
                 context: {
-                    totalWidth: this.totalWidth
+                    totalWidth: this.totalWidth,
+                    groupModel: undefined
                 }
             });
             
@@ -110,8 +114,8 @@ export class HeaderComponent<TRowData extends IRowData> {
         this.resizeObserver.observe(this.viewport);
     }
     
-    private onModelUpdated(event: any): void {
-        const { sortModel, filterModel } = event;
+    private onModelUpdated(event: ModelUpdatedData<TRowData>): void {
+        const { sortModel, filterModel, groupModel } = event;
         for (const [field, renderer] of this.headerCells) {
             const colDef = this.columnDefs.find(c => String(c.field) === field);
             if (colDef) {
@@ -122,7 +126,7 @@ export class HeaderComponent<TRowData extends IRowData> {
                     rowIndex: -1,
                     columnDef: colDef,
                     eParent: this.headerInner,
-                    context: { sortModel, filterModel }
+                    context: { sortModel, filterModel, groupModel }
                 });
             }
         }
@@ -134,23 +138,6 @@ export class HeaderComponent<TRowData extends IRowData> {
         }
     }
     
-    public updateSortIndicators(sortModel: SortModel): void {
-        for (const [field, renderer] of this.headerCells) {
-            const colDef = this.columnDefs.find(c => String(c.field) === field);
-            if (colDef) {
-                renderer.refresh({
-                    value: null,
-                    data: null,
-                    field: colDef.field,
-                    rowIndex: -1,
-                    columnDef: colDef,
-                    eParent: this.headerInner,
-                    context: { sortModel }
-                });
-            }
-        }
-    }
-    
     public getGui(): HTMLElement {
         return this.eGui;
     }
@@ -159,12 +146,20 @@ export class HeaderComponent<TRowData extends IRowData> {
         if (this.onHeaderCellClicked) {
             this.headerInner.removeEventListener("click", this.onHeaderCellClicked);
         }
-        
+
+        const eventService = ServiceAccess.getEventService(this.context);
+        eventService.removeEventListener("modelUpdated", this.onModelUpdatedBound);
+
         for (const renderer of this.headerCells.values()) {
             renderer.destroy();
         }
         this.headerCells.clear();
-        
+
         this.filterPopover.destroy();
+
+        if (this.resizeObserver) {
+            this.resizeObserver.disconnect();
+            this.resizeObserver = null;
+        }
     }
 }

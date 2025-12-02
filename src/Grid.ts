@@ -1,10 +1,11 @@
-import type { ColumnDef, GridOptions, IRowData, ScrollChangedEvent } from "./Interfaces";
+import type { GridOptions, IRowData, ScrollChangedEvent } from "./Interfaces";
 import { EventService } from "./EventService";
-import { RowModel, type ModelUpdatedEvent } from "./RowModel";
+import { RowModel, type ModelUpdatedData } from "./RowModel";
 import { RowRenderer, type RowRenderData } from "./Rendering/RowRenderer";
 import { HeaderComponent } from "./Components/HeaderComponent";
 import { GridContext } from "./GridContext";
 import { ServiceLocator, ServiceNames } from "./ServiceLocator";
+import { MIN_COL_WIDTH, MIN_ROW_WIDTH } from "./Constants";
 
 export class Grid<TRowData extends IRowData> {
     private context: GridContext;
@@ -39,26 +40,27 @@ export class Grid<TRowData extends IRowData> {
         eViewport.className = "grid-viewport";
         eGridDiv.appendChild(eViewport);
 
-        const rowWidth = this.getRowTotalWidth(gridOptions.columnDefs);
-        this.header = new HeaderComponent<TRowData>(gridOptions.columnDefs, this.context, eViewport, rowWidth);
+        const colDefs = gridOptions.columnDefs;
+        const rowWidth = colDefs?.reduce((sum, col) => sum + (col.width || MIN_COL_WIDTH), 0) || MIN_ROW_WIDTH;
+        this.header = new HeaderComponent<TRowData>(colDefs, this.context, eViewport, rowWidth);
         eHeader.appendChild(this.header.getGui());
 
         this.rowRenderer = new RowRenderer<TRowData>(
             rowWidth,
-            gridOptions.columnDefs,
+            colDefs,
             this.context,
             eViewport
         );
 
-        const viewportHeight = this.rowRenderer.getViewportHeight();
-        const initialRenderData = this.rowModel.calculateRowRenderData(0, viewportHeight);
+        const initialRenderData = this.getRenderData();
         this.rowRenderer.drawVirtualRows(initialRenderData);
     }
 
     private onScrollChanged(event: ScrollChangedEvent): void {
         if (event.scrollTop !== null && this.scrollTop !== event.scrollTop) {
             this.scrollTop = event.scrollTop;
-            this.rowRenderer.onScrollTopChanged(this.getRowRenderData());
+            const renderData = this.getRenderData();
+            this.rowRenderer.onScrollTopChanged(renderData);
         }
 
         if (event.scrollLeft !== null && this.scrollLeft !== event.scrollLeft) {
@@ -67,30 +69,25 @@ export class Grid<TRowData extends IRowData> {
         }
     }
 
-    private onModelUpdated(event: ModelUpdatedEvent<TRowData>): void {
-        this.header.updateSortIndicators(event.sortModel);
-        this.scrollTop = 0;
-        this.rowRenderer.refreshRows(this.getRowRenderData(), true);
+    private onModelUpdated(_event: ModelUpdatedData<TRowData>): void {
+        const renderData = this.getRenderData();
+        this.rowRenderer.refreshRows(renderData, this.scrollTop);
     }
 
-    private getRowRenderData(): RowRenderData<TRowData> {
+    private getRenderData(): RowRenderData<TRowData> {
         const viewportHeight = this.rowRenderer.getViewportHeight();
-        const renderData = this.rowModel.calculateRowRenderData(this.scrollTop, viewportHeight);
-        return renderData;
-    }
-
-    private getRowTotalWidth(columnDefs: ColumnDef[]): number {
-        const minColWidth = 100;
-        const minRowWidth = 300;
-        return columnDefs?.reduce((sum, col) => sum + (col.width || minColWidth), 0) || minRowWidth;
+        return this.rowModel.calculateRowRenderData(this.scrollTop, viewportHeight);
     }
 
     public destroy(): void {
-        // Unregister all services for this Grid context (includes EventService cleanup)
+        // Destroy components in reverse order of creation
+        this.rowRenderer.destroy();
+        this.header.destroy();
+        this.rowModel.destroy();
+
+        this.eventService.destroy();
+
         const locator = ServiceLocator.getInstance();
         locator.unregisterContext(this.context.getContextId());
-
-        // Cleanup components
-        this.header.destroy();
     }
 }

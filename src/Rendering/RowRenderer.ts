@@ -28,6 +28,7 @@ export class RowRenderer<TRowData extends IRowData> {
     private inactiveRows: IRowComponent<TRowData>[];
     private rafPending: number | null = null;
     private scrollTimeout: number | null = null;
+    private onScrollBound: () => void;
 
     constructor(
         rowWidth: number,
@@ -48,9 +49,8 @@ export class RowRenderer<TRowData extends IRowData> {
         this.container.className = "grid-center-container";
         this.viewport.appendChild(this.container);
 
-        this.viewport.addEventListener("scroll", this.onScroll.bind(this));
-        const eventService = ServiceAccess.getEventService(this.context);
-        eventService.addEventListener("scrollTopChanged", this.onScrollTopChanged.bind(this));
+        this.onScrollBound = this.onScroll.bind(this);
+        this.viewport.addEventListener("scroll", this.onScrollBound);
     }
 
     public drawVirtualRows(renderData: RowRenderData<TRowData>) {
@@ -87,15 +87,13 @@ export class RowRenderer<TRowData extends IRowData> {
         return this.viewport.clientHeight;
     }
 
-    public refreshRows(rowRenderData: RowRenderData<TRowData>, resetScroll: boolean = false): void {
+    public refreshRows(rowRenderData: RowRenderData<TRowData>, scrollTop: number, resetScroll?: boolean): void {
         for (const [index, activeRow] of this.activeRows) {
             this.releaseRowComponent(activeRow);
             this.activeRows.delete(index);
         }
 
-        if (resetScroll) {
-            this.viewport.scrollTop = 0;
-        }
+        this.viewport.scrollTop = resetScroll ? 0 : scrollTop;
 
         if (rowRenderData) {
             this.drawVirtualRows(rowRenderData);
@@ -113,20 +111,15 @@ export class RowRenderer<TRowData extends IRowData> {
     }
 
     private onScroll() {
-        if (this.activeRows.size > 0) {
-            for (const row of this.activeRows.values()) {
-                row.getGui().classList.add("grid-row-scrolling");
-            }
-        }
+        // Add scrolling class to container for GPU acceleration
+        this.container.classList.add("grid-container-scrolling");
 
         if (this.scrollTimeout) {
             clearTimeout(this.scrollTimeout);
         }
 
         this.scrollTimeout = setTimeout(() => {
-            for (const row of this.activeRows.values()) {
-                row.getGui().classList.remove("grid-row-scrolling");
-            }
+            this.container.classList.remove("grid-container-scrolling");
         }, 150);
 
         const scrollTop = this.viewport.scrollTop;
@@ -157,5 +150,39 @@ export class RowRenderer<TRowData extends IRowData> {
             eGui.remove();
         }
         this.inactiveRows.push(rowComp);
+    }
+
+    public destroy(): void {
+        // Cancel pending animation frame
+        if (this.rafPending !== null) {
+            cancelAnimationFrame(this.rafPending);
+            this.rafPending = null;
+        }
+
+        // Clear scroll timeout
+        if (this.scrollTimeout !== null) {
+            clearTimeout(this.scrollTimeout);
+            this.scrollTimeout = null;
+        }
+
+        // Remove scroll event listener
+        this.viewport.removeEventListener("scroll", this.onScrollBound);
+
+        // Destroy all active row components
+        for (const rowComp of this.activeRows.values()) {
+            rowComp.destroy();
+        }
+        this.activeRows.clear();
+
+        // Destroy all inactive row components
+        for (const rowComp of this.inactiveRows) {
+            rowComp.destroy();
+        }
+        this.inactiveRows = [];
+
+        // Remove container from DOM
+        if (this.container.parentNode) {
+            this.container.remove();
+        }
     }
 }

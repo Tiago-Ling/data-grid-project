@@ -1,6 +1,6 @@
 import { Grid } from "./Grid";
 import type { IRowData, GridOptions } from "./Interfaces";
-// import jsonData from "../openfood_page_1_limit_100.json";
+import jsonData from "../openfood_page_1_limit_100.json";
 
 interface GridRowData extends IRowData {
     id: number,
@@ -18,9 +18,9 @@ interface GridRowData extends IRowData {
     barcode?: string
 }
 
-async function fetchProducts(search: string, page: number, limit: number = 100, fetchFunction: (search:string, page: number, limit: number) => Promise<any>) {
-    // let data = fetchFunction ? await fetchFunction(search, page, limit) : jsonData;
-    let data = await fetchFunction(search, page, limit);
+async function fetchProducts(search: string, page: number, limit: number = 100, fetchFunction?: (search:string, page: number, limit: number) => Promise<any>) {
+    let data = fetchFunction ? await fetchFunction(search, page, limit) : jsonData;
+    // let data = await fetchFunction(search, page, limit);
     return {
         total: data.count, // Total results available
         page: data.page,
@@ -44,12 +44,12 @@ async function fetchProducts(search: string, page: number, limit: number = 100, 
 }
 
 // Grab the data from the web
-const webFetch = (search: string, page: number, limit: number) =>
-    fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${search}&page=${page}&page_size=${limit}&json=true`).then(response => response.json());
-const { rows } = await fetchProducts("pasta", 1, 100, webFetch);
+// const webFetch = (search: string, page: number, limit: number) =>
+//     fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${search}&page=${page}&page_size=${limit}&json=true`).then(response => response.json());
+// const { rows } = await fetchProducts("pasta", 1, 100, webFetch);
 
 // For local testing without abusing Open Food Facts' API
-// const { rows } = await fetchProducts("pasta", 1, 100);
+const { rows } = await fetchProducts("pasta", 1, 100);
 
 const gridOptions: GridOptions<GridRowData> = {
     columnDefs: [

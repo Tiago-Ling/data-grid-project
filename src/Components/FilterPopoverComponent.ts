@@ -8,51 +8,59 @@ export class FilterPopoverComponent {
     private eClearBtn: HTMLButtonElement;
     private context: GridContext;
     private currentField: string | null = null;
+    private handleApplyBound: () => void;
+    private handleClearBound: () => void;
+    private handleKeydownBound: (e: KeyboardEvent) => void;
+    private handleDocumentClickBound: (e: MouseEvent) => void;
 
     constructor(context: GridContext) {
         this.context = context;
-        
+
         this.eGui = document.createElement("div");
         this.eGui.className = "filter-popover";
         this.eGui.style.display = "none";
-        
+
         this.eInput = document.createElement("input");
         this.eInput.type = "text";
         this.eInput.className = "filter-input";
         this.eInput.placeholder = "Filter...";
-        
+
         const buttonContainer = document.createElement("div");
         buttonContainer.className = "filter-buttons";
-        
+
         this.eApplyBtn = document.createElement("button");
         this.eApplyBtn.className = "filter-apply-btn";
         this.eApplyBtn.textContent = "Apply";
-        
+
         this.eClearBtn = document.createElement("button");
         this.eClearBtn.className = "filter-clear-btn";
         this.eClearBtn.textContent = "Clear";
-        
+
         buttonContainer.appendChild(this.eApplyBtn);
         buttonContainer.appendChild(this.eClearBtn);
-        
+
         this.eGui.appendChild(this.eInput);
         this.eGui.appendChild(buttonContainer);
-        
-        this.eApplyBtn.addEventListener("click", this.handleApply.bind(this));
-        this.eClearBtn.addEventListener("click", this.handleClear.bind(this));
-        this.eInput.addEventListener("keydown", (e) => {
+
+        this.handleApplyBound = this.handleApply.bind(this);
+        this.handleClearBound = this.handleClear.bind(this);
+        this.handleKeydownBound = (e: KeyboardEvent) => {
             if (e.key === "Enter") {
                 this.handleApply();
             } else if (e.key === "Escape") {
                 this.hide();
             }
-        });
-        
-        document.addEventListener("click", (e) => {
+        };
+        this.handleDocumentClickBound = (e: MouseEvent) => {
             if (!this.eGui.contains(e.target as Node)) {
                 this.hide();
             }
-        });
+        };
+
+        this.eApplyBtn.addEventListener("click", this.handleApplyBound);
+        this.eClearBtn.addEventListener("click", this.handleClearBound);
+        this.eInput.addEventListener("keydown", this.handleKeydownBound);
+        document.addEventListener("click", this.handleDocumentClickBound);
     }
     
     public show(field: string, anchorElement: HTMLElement, currentValue: string = ""): void {
@@ -100,8 +108,10 @@ export class FilterPopoverComponent {
     }
     
     public destroy(): void {
-        this.eApplyBtn.removeEventListener("click", this.handleApply.bind(this));
-        this.eClearBtn.removeEventListener("click", this.handleClear.bind(this));
+        this.eApplyBtn.removeEventListener("click", this.handleApplyBound);
+        this.eClearBtn.removeEventListener("click", this.handleClearBound);
+        this.eInput.removeEventListener("keydown", this.handleKeydownBound);
+        document.removeEventListener("click", this.handleDocumentClickBound);
         this.eGui.remove();
     }
 }

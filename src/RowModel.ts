@@ -24,12 +24,16 @@ export interface GroupModel<TRowData extends IRowData> {
     expandedGroups: Set<string>;
 }
 
-export interface ModelUpdatedEvent<TRowData extends IRowData> {
+export interface ModelUpdatedData<TRowData extends IRowData> {
     rowData: TreeNode<TRowData>[];
     filterModel: FilterModel<TRowData>;
     sortModel: SortModel;
     groupModel: GroupModel<TRowData>;
 }
+
+export type ModelUpdatedEvent<TRowData extends IRowData> = (
+    data: ModelUpdatedData<TRowData>, totalHeight: number
+) => void;
 
 export type RowHeightCallback<TRowData extends IRowData> = (params: {
     data: TRowData,
@@ -70,6 +74,11 @@ export class RowModel<TRowData extends IRowData> {
     private getRowHeightCallback?: RowHeightCallback<TRowData>;
     private cachedRowPositions: number[] = [];
     private totalHeight: number = 0;
+    private batchedUpdatePending: boolean = false;
+    private onSortChangedBound: (event: { field: string, shiftKey: boolean }) => void;
+    private onFilterChangedBound: (event: { field: keyof TRowData, searchTerm: string }) => void;
+    private onGroupByToggledBound: (field: keyof TRowData) => void;
+    private toggleGroupExpansionBound: (event: { key: string }) => void;
 
     constructor(gridOptions: GridOptions<TRowData>, context: GridContext) {
         const { rowData, columnDefs, getRowHeightCallback } = gridOptions;
@@ -94,12 +103,27 @@ export class RowModel<TRowData extends IRowData> {
             expandedGroups: new Set()
         };
 
+        this.onSortChangedBound = this.onSortChanged.bind(this);
+        this.onFilterChangedBound = this.onFilterChanged.bind(this);
+        this.onGroupByToggledBound = this.onGroupByToggled.bind(this);
+        this.toggleGroupExpansionBound = this.toggleGroupExpansion.bind(this);
+
         this.recalculatePositions();
         const eventService = ServiceAccess.getEventService(this.context);
-        eventService.addEventListener("sortChanged", this.onSortChanged.bind(this));
-        eventService.addEventListener("filterChanged", this.onFilterChanged.bind(this));
-        eventService.addEventListener("groupByToggled", this.onGroupByToggled.bind(this));
-        eventService.addEventListener("groupExpanded", this.toggleGroupExpansion.bind(this));
+        eventService.addEventListener("sortChanged", this.onSortChangedBound);
+        eventService.addEventListener("filterChanged", this.onFilterChangedBound);
+        eventService.addEventListener("groupByToggled", this.onGroupByToggledBound);
+        eventService.addEventListener("groupExpanded", this.toggleGroupExpansionBound);
+    }
+
+    private updateModel() {
+        if (!this.batchedUpdatePending) {
+            this.batchedUpdatePending = true;
+            requestAnimationFrame(() => {
+                this.batchedUpdatePending = false;
+                this.applyTransformations();
+            });
+        }
     }
 
     private applyTransformations() {
@@ -137,7 +161,7 @@ export class RowModel<TRowData extends IRowData> {
 
         this.rowsToDisplay = rowNodes;
         this.recalculatePositions();
-        const event: ModelUpdatedEvent<TRowData> = {
+        const event: ModelUpdatedData<TRowData> = {
             rowData: this.rowsToDisplay,
             filterModel: this.filterModel,
             sortModel: this.sortModel,
@@ -187,7 +211,7 @@ export class RowModel<TRowData extends IRowData> {
                 return value.toLowerCase().includes(event.searchTerm.toLowerCase());
             });
         }
-        this.applyTransformations();
+        this.updateModel();
     }
 
     private onGroupByToggled(field: keyof TRowData): void {
@@ -203,7 +227,7 @@ export class RowModel<TRowData extends IRowData> {
         if (!toRemove) {
             this.groupModel.groupBy.push(field);
         }
-        this.applyTransformations();
+        this.updateModel();
     }
 
     private toggleGroupExpansion(event: { key: string }): void {
@@ -213,7 +237,7 @@ export class RowModel<TRowData extends IRowData> {
         } else {
             this.groupModel.expandedGroups.delete(event.key);
         }
-        this.applyTransformations();
+        this.updateModel();
     }
 
     private buildGroupTree(rows:TRowData[], groupModel: GroupModel<TRowData>, level: number = 0, parentPath: string = ""): TreeNode<TRowData>[] {
@@ -318,7 +342,7 @@ export class RowModel<TRowData extends IRowData> {
                 this.sortModel.sorts = [{ field, direction: SortDirection.ASC }];
             }
         }
-        this.applyTransformations();
+        this.updateModel();
     }
 
     private compareValues<T>(a: T, b: T, direction: SortDirection): number {
@@ -391,5 +415,21 @@ export class RowModel<TRowData extends IRowData> {
             }
         }
         return Math.max(0, Math.min(low, this.cachedRowPositions.length - 1));
+    }
+
+    public destroy(): void {
+        const eventService = ServiceAccess.getEventService(this.context);
+        eventService.removeEventListener("sortChanged", this.onSortChangedBound);
+        eventService.removeEventListener("filterChanged", this.onFilterChangedBound);
+        eventService.removeEventListener("groupByToggled", this.onGroupByToggledBound);
+        eventService.removeEventListener("groupExpanded", this.toggleGroupExpansionBound);
+
+        // Clear all model data
+        this.rowsToDisplay = [];
+        this.cachedRowPositions = [];
+        this.filterModel.filters.clear();
+        this.sortModel.sorts = [];
+        this.groupModel.groupBy = [];
+        this.groupModel.expandedGroups.clear();
     }
 }
